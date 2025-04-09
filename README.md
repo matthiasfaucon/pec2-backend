@@ -30,15 +30,3 @@ go run main.go
 
 L'API sera disponible sur `http://localhost:8080`
 
-## Endpoints
-
-- `GET /ping` - Test de connexion à l'API
-
-## Structure du projet
-
-```
-.
-├── main.go         # Point d'entrée de l'application
-├── go.mod         # Gestion des dépendances
-└── README.md      # Documentation
-```
