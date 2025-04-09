@@ -1,0 +1,24 @@
+basePath: /
+host: localhost:8080
+info:
+  contact: {}
+  description: API pour le projet PEC2 Backend
+  title: API PEC2 Backend
+  version: "1.0"
+paths:
+  /ping:
+    get:
+      description: Endpoint de test qui répond pong
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Ping test
+      tags:
+      - test
+swagger: "2.0"
