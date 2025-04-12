@@ -1,4 +1,15 @@
 basePath: /
+definitions:
+  utils.Response:
+    properties:
+      data: {}
+      error:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -15,10 +26,21 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/utils.Response'
       summary: Ping test
       tags:
       - test
+  /users:
+    post:
+      description: Endpoint for save a user in db
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Users CreateUser
+      tags:
+      - createUser
 swagger: "2.0"
