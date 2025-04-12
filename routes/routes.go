@@ -21,7 +21,7 @@ func SetupRouter() *gin.Engine {
 	// Routes
 	r.GET("/ping", pingHandler.HandlePing)
 
+	UsersRoutes(r)
+
 	return r
 }
-
-
