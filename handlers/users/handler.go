@@ -55,7 +55,7 @@ func CreateUser(c *gin.Context) {
 	})
 }
 
-func hashPassword(password string) string {
+func hashPassword  (password string) string {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		panic(err)

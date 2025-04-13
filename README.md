@@ -30,3 +30,8 @@ go run main.go
 
 L'API sera disponible sur `http://localhost:8080`
 
+## Généré la document swagger 
+
+```bash
+swag init
+```
