@@ -15,6 +15,93 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/contact": {
+            "post": {
+                "description": "Submit a new contact request with the provided information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contacts"
+                ],
+                "summary": "Create a new contact request",
+                "parameters": [
+                    {
+                        "description": "Contact information",
+                        "name": "contact",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ContactCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "message: Contact request submitted successfully, id: contact ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "error: Error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/contacts": {
+            "get": {
+                "description": "Retrieves a list of all contact requests",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contacts"
+                ],
+                "summary": "Get all contact requests",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/models.Contact"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/user": {
             "post": {
                 "description": "Create a new user with the provided information",
@@ -73,6 +160,73 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "models.Contact": {
+            "description": "Modèle complet d'une demande de contact",
+            "type": "object",
+            "required": [
+                "email",
+                "firstName",
+                "lastName",
+                "message",
+                "subject"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "firstName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                },
+                "submittedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ContactCreate": {
+            "description": "modèle pour créer une demande de contact",
+            "type": "object",
+            "required": [
+                "email",
+                "firstName",
+                "lastName",
+                "message",
+                "subject"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "jean.dupont@exemple.com"
+                },
+                "firstName": {
+                    "type": "string",
+                    "example": "Jean"
+                },
+                "lastName": {
+                    "type": "string",
+                    "example": "Dupont"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "J'aimerais avoir plus d'informations sur vos services."
+                },
+                "subject": {
+                    "type": "string",
+                    "example": "Demande d'information"
+                }
+            }
+        },
         "models.UserCreate": {
             "description": "model for create a user",
             "type": "object",

@@ -13,7 +13,6 @@ import (
 var DB *gorm.DB
 
 func InitDB() {
-	// Tentative de chargement du fichier .env
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("Warning: Impossible to load the .env file:", err)
 		fmt.Println("The environment variable DB_URL must be defined in the system environment")
@@ -32,7 +31,7 @@ func InitDB() {
 		panic("Could not connect to the database")
 	}
 
-	err = DB.AutoMigrate(&models.User{})
+	err = DB.AutoMigrate(&models.User{}, &models.Contact{})
 	if err != nil {
 		fmt.Println("Error migrating database:", err)
 		panic("Could not migrate database")
