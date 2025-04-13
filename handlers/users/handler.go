@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"pec2-backend/db"
 	"pec2-backend/models"
-	"regexp"
+	"pec2-backend/utils"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -43,9 +43,8 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Vérification format email avec regex
-	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
-	if !emailRegex.MatchString(user.Email) {
+	// Vérification format email avec l'utilitaire de validation
+	if !utils.ValidateEmail(user.Email) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid email format",
 		})

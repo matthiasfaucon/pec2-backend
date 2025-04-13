@@ -15,6 +15,55 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/contact": {
+            "post": {
+                "description": "Submit a new contact request with the provided information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contacts"
+                ],
+                "summary": "Create a new contact request",
+                "parameters": [
+                    {
+                        "description": "Contact information",
+                        "name": "contact",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ContactCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "message: Contact request submitted successfully, id: contact ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "error: Error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/user": {
             "post": {
                 "description": "Create a new user with the provided information",
@@ -73,6 +122,39 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "models.ContactCreate": {
+            "description": "modèle pour créer une demande de contact",
+            "type": "object",
+            "required": [
+                "email",
+                "firstName",
+                "lastName",
+                "message",
+                "subject"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "jean.dupont@exemple.com"
+                },
+                "firstName": {
+                    "type": "string",
+                    "example": "Jean"
+                },
+                "lastName": {
+                    "type": "string",
+                    "example": "Dupont"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "J'aimerais avoir plus d'informations sur vos services."
+                },
+                "subject": {
+                    "type": "string",
+                    "example": "Demande d'information"
+                }
+            }
+        },
         "models.UserCreate": {
             "description": "model for create a user",
             "type": "object",

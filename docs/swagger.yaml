@@ -1,5 +1,30 @@
 basePath: /
 definitions:
+  models.ContactCreate:
+    description: modèle pour créer une demande de contact
+    properties:
+      email:
+        example: jean.dupont@exemple.com
+        type: string
+      firstName:
+        example: Jean
+        type: string
+      lastName:
+        example: Dupont
+        type: string
+      message:
+        example: J'aimerais avoir plus d'informations sur vos services.
+        type: string
+      subject:
+        example: Demande d'information
+        type: string
+    required:
+    - email
+    - firstName
+    - lastName
+    - message
+    - subject
+    type: object
   models.UserCreate:
     description: model for create a user
     properties:
@@ -21,6 +46,40 @@ info:
   title: API PEC2 Backend
   version: "1.0"
 paths:
+  /contact:
+    post:
+      consumes:
+      - application/json
+      description: Submit a new contact request with the provided information
+      parameters:
+      - description: Contact information
+        in: body
+        name: contact
+        required: true
+        schema:
+          $ref: '#/definitions/models.ContactCreate'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'message: Contact request submitted successfully, id: contact
+            ID'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'error: Error message'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new contact request
+      tags:
+      - contacts
   /user:
     post:
       consumes:
