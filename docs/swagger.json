@@ -29,21 +29,50 @@
                 }
             }
         },
-        "/users": {
+        "/user": {
             "post": {
-                "description": "Endpoint for save a user in db",
+                "description": "Create a new user with the provided information",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "createUser"
+                    "users"
                 ],
-                "summary": "Users CreateUser",
-                "responses": {
-                    "201": {
-                        "description": "Created",
+                "summary": "Create a new user",
+                "parameters": [
+                    {
+                        "description": "User information",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
                         "schema": {
-                            "$ref": "#/definitions/utils.Response"
+                            "$ref": "#/definitions/models.UserCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: User created successfully, email: user email",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "error: Error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -51,6 +80,25 @@
         }
     },
     "definitions": {
+        "models.UserCreate": {
+            "description": "model for create a user",
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "utilisateur@exemple.com"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "example": "motdepasse123"
+                }
+            }
+        },
         "utils.Response": {
             "type": "object",
             "properties": {

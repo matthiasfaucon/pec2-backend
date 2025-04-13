@@ -1,5 +1,19 @@
 basePath: /
 definitions:
+  models.UserCreate:
+    description: model for create a user
+    properties:
+      email:
+        example: utilisateur@exemple.com
+        type: string
+      password:
+        example: motdepasse123
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
   utils.Response:
     properties:
       data: {}
@@ -30,17 +44,37 @@ paths:
       summary: Ping test
       tags:
       - test
-  /users:
+  /user:
     post:
-      description: Endpoint for save a user in db
+      consumes:
+      - application/json
+      description: Create a new user with the provided information
+      parameters:
+      - description: User information
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserCreate'
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
+        "200":
+          description: 'message: User created successfully, email: user email'
           schema:
-            $ref: '#/definitions/utils.Response'
-      summary: Users CreateUser
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: Invalid input'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'error: Error message'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new user
       tags:
-      - createUser
+      - users
 swagger: "2.0"

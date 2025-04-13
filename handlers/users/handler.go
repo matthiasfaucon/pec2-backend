@@ -10,13 +10,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// CreateUser save a user in db
-// @Summary Users CreateUser
-// @Description Endpoint for save a user in db
-// @Tags createUser
+// @Summary Create a new user
+// @Description Create a new user with the provided information
+// @Tags users
+// @Accept json
 // @Produce json
-// @Success 201 {object} utils.Response
-// @Router /users [post]
+// @Param user body models.UserCreate true "User information"
+// @Success 200 {object} map[string]interface{} "message: User created successfully, email: user email"
+// @Failure 400 {object} map[string]interface{} "error: Invalid input"
+// @Failure 500 {object} map[string]interface{} "error: Error message"
+// @Router /user [post]
 func CreateUser(c *gin.Context) {
 	var user models.User
 
@@ -55,7 +58,7 @@ func CreateUser(c *gin.Context) {
 	})
 }
 
-func hashPassword  (password string) string {
+func hashPassword(password string) string {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		panic(err)

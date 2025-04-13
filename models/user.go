@@ -34,3 +34,10 @@ type User struct {
 	EmailVerifiedAt    sql.NullTime `json:"emailVerifiedAt"`
 	Siret              string       `json:"siret"`
 }
+
+// UserCreate model for create a user
+// @Description model for create a user
+type UserCreate struct {
+	Email    string `json:"email" binding:"required,email" example:"utilisateur@exemple.com"`
+	Password string `json:"password" binding:"required,min=6" example:"motdepasse123"`
+}
