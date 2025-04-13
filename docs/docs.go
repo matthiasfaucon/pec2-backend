@@ -88,7 +88,7 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "minLength": 6,
-                    "example": "motdepasse123"
+                    "example": "Motdepasse123"
                 }
             }
         }

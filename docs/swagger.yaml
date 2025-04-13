@@ -7,7 +7,7 @@ definitions:
         example: utilisateur@exemple.com
         type: string
       password:
-        example: motdepasse123
+        example: Motdepasse123
         minLength: 6
         type: string
     required:

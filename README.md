@@ -35,3 +35,10 @@ L'API sera disponible sur `http://localhost:8080`
 ```bash
 swag init
 ```
+
+
+## Lancer les tests
+
+```bash
+go test ./handlers/users -v
+```
