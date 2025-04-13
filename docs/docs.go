@@ -64,6 +64,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/contacts": {
+            "get": {
+                "description": "Retrieves a list of all contact requests",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contacts"
+                ],
+                "summary": "Get all contact requests",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/models.Contact"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/user": {
             "post": {
                 "description": "Create a new user with the provided information",
@@ -122,6 +160,40 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "models.Contact": {
+            "description": "Modèle complet d'une demande de contact",
+            "type": "object",
+            "required": [
+                "email",
+                "firstName",
+                "lastName",
+                "message",
+                "subject"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "firstName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                },
+                "submittedAt": {
+                    "type": "string"
+                }
+            }
+        },
         "models.ContactCreate": {
             "description": "modèle pour créer une demande de contact",
             "type": "object",

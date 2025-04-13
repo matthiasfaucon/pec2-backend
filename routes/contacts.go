@@ -8,4 +8,5 @@ import (
 
 func ContactsRoutes(r *gin.Engine) {
 	r.POST("/contact", contacts.CreateContact)
+	r.GET("/contacts", contacts.GetAllContacts)
 }

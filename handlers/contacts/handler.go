@@ -59,3 +59,23 @@ func CreateContact(c *gin.Context) {
 		"id":      contact.ID,
 	})
 }
+
+// @Summary Get all contact requests
+// @Description Retrieves a list of all contact requests
+// @Tags contacts
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string][]models.Contact
+// @Failure 500 {object} map[string]string
+// @Router /contacts [get]
+func GetAllContacts(c *gin.Context) {
+	var contacts []models.Contact
+	result := db.DB.Order("submitted_at DESC").Find(&contacts)
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"contacts": contacts})
+}

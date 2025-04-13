@@ -1,5 +1,29 @@
 basePath: /
 definitions:
+  models.Contact:
+    description: Modèle complet d'une demande de contact
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      id:
+        type: string
+      lastName:
+        type: string
+      message:
+        type: string
+      subject:
+        type: string
+      submittedAt:
+        type: string
+    required:
+    - email
+    - firstName
+    - lastName
+    - message
+    - subject
+    type: object
   models.ContactCreate:
     description: modèle pour créer une demande de contact
     properties:
@@ -78,6 +102,31 @@ paths:
             additionalProperties: true
             type: object
       summary: Create a new contact request
+      tags:
+      - contacts
+  /contacts:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of all contact requests
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/models.Contact'
+              type: array
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all contact requests
       tags:
       - contacts
   /user:
