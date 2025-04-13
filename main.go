@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"pec2-backend/db"
 	_ "pec2-backend/docs"
 	"pec2-backend/routes"
 
@@ -15,13 +16,12 @@ import (
 // @host localhost:8080
 // @BasePath /
 func main() {
-	// Initialiser Gin en mode release
 	gin.SetMode(gin.ReleaseMode)
 
-	// Initialiser le router avec les routes
+	db.InitDB()
+
 	r := routes.SetupRouter()
 
-	// Démarrer le serveur
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal("Erreur lors du démarrage du serveur:", err)
 	}
