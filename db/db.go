@@ -13,16 +13,15 @@ import (
 var DB *gorm.DB
 
 func InitDB() {
-	// Tenter de charger les variables d'environnement depuis le fichier .env
+	// Tentative de chargement du fichier .env
 	if err := godotenv.Load(); err != nil {
-		fmt.Println("Avertissement: Impossible de charger le fichier .env:", err)
-		fmt.Println("Définition manuelle de la variable d'environnement DB_URL")
-
+		fmt.Println("Warning: Impossible to load the .env file:", err)
+		fmt.Println("The environment variable DB_URL must be defined in the system environment")
 	}
 
 	dsn := os.Getenv("DB_URL")
 	if dsn == "" {
-		fmt.Println("Variable DB_URL non définie dans le fichier .env")
+		fmt.Println("Variable DB_URL non définie")
 		panic("URL de base de données non configurée")
 	}
 
