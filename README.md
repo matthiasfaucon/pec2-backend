@@ -40,5 +40,5 @@ swag init
 ## Lancer les tests
 
 ```bash
-go test ./handlers/users -v
+go test ./handlers/auth -v
 ```

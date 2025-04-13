@@ -22,7 +22,7 @@ type User struct {
 	Email              string       `json:"email" binding:"required,email"`
 	Password           string       `json:"password" binding:"required,min=6"`
 	UserName           string       `json:"username"`
-	Status             Role         `json:"role"`
+	Role               Role         `json:"role"`
 	Bio                string       `json:"bio"`
 	ProfilePicture     string       `json:"profilePicture"`
 	StripeCustomerId   string       `json:"stripeCustomerId"`

@@ -1,4 +1,4 @@
-package users
+package auth
 
 import (
 	"bytes"
@@ -269,7 +269,7 @@ func TestCreateUser_DatabaseError(t *testing.T) {
 }
 
 func TestHashPassword(t *testing.T) {
-	hashed := hashPassword("Password123")
+	hashed, _ := hashPassword("Password123")
 	assert.NotEmpty(t, hashed)
 
 	assert.NotEqual(t, "Password123", hashed)
@@ -280,3 +280,20 @@ func TestHashPassword(t *testing.T) {
 	err = bcrypt.CompareHashAndPassword([]byte(hashed), []byte("WrongPassword"))
 	assert.Error(t, err)
 }
+
+func TestSamePassword_Correct(t *testing.T) {
+	hashed := samePassword("Test123!", "$2a$10$8b9qfHvbQVnP1IgEyd/AX.X5PCNGO/ZVE13NZS8xg3wDo6f4rWpiW")
+	assert.True(t, hashed)
+
+}
+
+func TestSamePassword_Incorrect(t *testing.T) {
+	hashed := samePassword("Test123!!", "$2a$10$8b9qfHvbQVnP1IgEyd/AX.X5PCNGO/ZVE13NZS8xg3wDo6f4rWpiW")
+	assert.False(t, hashed)
+
+}
+
+//TODO test for login
+// 1. user avec un bon mail et un bon pwd
+// 2. user avec un bon mail et un mauvais pwd
+//3. user avec un email inexistant

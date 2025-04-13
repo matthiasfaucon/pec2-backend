@@ -11,7 +11,7 @@ func SetupRouter() *gin.Engine {
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	UsersRoutes(r)
+	AuthRoutes(r)
 	ContactsRoutes(r)
 
 	return r
