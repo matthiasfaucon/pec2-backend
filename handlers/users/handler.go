@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"pec2-backend/db"
 	"pec2-backend/models"
+	"regexp"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -28,43 +30,72 @@ func CreateUser(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid input",
+			"error": "Invalid input: " + err.Error(),
 		})
 		return
 	}
 
-	// Validation supplémentaire de l'email (déjà validé par le binding "email" mais on peut ajouter des règles spécifiques)
+	// 1. Validation de l'email
 	if user.Email == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Email cannot be empty",
+			"error": "The email cannot be empty",
 		})
 		return
 	}
 
-	// Validation supplémentaire du mot de passe
+	// Vérification format email avec regex
+	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
+	if !emailRegex.MatchString(user.Email) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid email format",
+		})
+		return
+	}
+
+	// 2. Validation du mot de passe
+	if user.Password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "The password cannot be empty",
+		})
+		return
+	}
+
 	if len(user.Password) < 6 {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Password must be at least 6 characters long",
+			"error": "The password must contain at least 6 characters",
 		})
 		return
 	}
 
-	// Vérifier si l'email existe déjà
+	// Vérifier la complexité du mot de passe
+	hasLower := strings.ContainsAny(user.Password, "abcdefghijklmnopqrstuvwxyz")
+	hasUpper := strings.ContainsAny(user.Password, "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	hasDigit := strings.ContainsAny(user.Password, "0123456789")
+
+	if !hasLower || !hasUpper || !hasDigit {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "The password must contain at least one lowercase, one uppercase and one digit",
+		})
+		return
+	}
+
+	// 3. Vérifier si l'email existe déjà
 	var existingUser models.User
 	if err := db.DB.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
 		// L'email existe déjà
 		c.JSON(http.StatusConflict, gin.H{
-			"error": "Email already exists",
+			"error": "This email is already used",
 		})
 		return
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		// Une autre erreur s'est produite lors de la vérification
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Error checking email existence",
+			"error": "Error when checking the email existence",
 		})
 		return
 	}
 
+	// 4. Hachage du mot de passe et initialisation des valeurs par défaut
 	user.Password = hashPassword(user.Password)
 	user.Bio = ""
 	user.UserName = ""
@@ -79,6 +110,7 @@ func CreateUser(c *gin.Context) {
 	user.EmailVerifiedAt = sql.NullTime{Valid: false}
 	user.Siret = ""
 
+	// 5. Enregistrement de l'utilisateur dans la base de données
 	result := db.DB.Create(&user)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

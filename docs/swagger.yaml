@@ -14,16 +14,6 @@ definitions:
     - email
     - password
     type: object
-  utils.Response:
-    properties:
-      data: {}
-      error:
-        type: string
-      message:
-        type: string
-      success:
-        type: boolean
-    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -31,19 +21,6 @@ info:
   title: API PEC2 Backend
   version: "1.0"
 paths:
-  /ping:
-    get:
-      description: Endpoint de test qui répond pong
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/utils.Response'
-      summary: Ping test
-      tags:
-      - test
   /user:
     post:
       consumes:
