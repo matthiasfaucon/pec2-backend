@@ -31,7 +31,6 @@ func TestCreateContact_Success(t *testing.T) {
 	_, mock, cleanup := testutils.SetupTestDB(t)
 	defer cleanup()
 
-	// Simuler l'insertion d'un contact
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO "contacts" (.+) RETURNING "id"`).
 		WillReturnRows(mock.NewRows([]string{"id"}).AddRow("123e4567-e89b-12d3-a456-426614174000"))
@@ -40,7 +39,6 @@ func TestCreateContact_Success(t *testing.T) {
 	r := testutils.SetupTestRouter()
 	r.POST("/contact", CreateContact)
 
-	// Données valides pour la création d'un contact
 	contactData := map[string]string{
 		"firstName": "Jean",
 		"lastName":  "Dupont",
@@ -56,10 +54,8 @@ func TestCreateContact_Success(t *testing.T) {
 
 	r.ServeHTTP(resp, req)
 
-	// Vérification de la réponse
 	assert.Equal(t, http.StatusCreated, resp.Code)
 
-	// Vérification du corps de la réponse
 	var respBody map[string]interface{}
 	json.Unmarshal(resp.Body.Bytes(), &respBody)
 	assert.Equal(t, "Contact request submitted successfully", respBody["message"])
