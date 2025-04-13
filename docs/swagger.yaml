@@ -69,6 +69,11 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "409":
+          description: 'error: Email already exists'
+          schema:
+            additionalProperties: true
+            type: object
         "500":
           description: 'error: Error message'
           schema:
