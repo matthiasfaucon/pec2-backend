@@ -23,7 +23,6 @@ import (
 func CreateContact(c *gin.Context) {
 	var contactInput models.ContactCreate
 
-	// Binding des données JSON
 	if err := c.ShouldBindJSON(&contactInput); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid input: " + err.Error(),
@@ -31,7 +30,6 @@ func CreateContact(c *gin.Context) {
 		return
 	}
 
-	// Validation supplémentaire de l'email
 	if !utils.ValidateEmail(contactInput.Email) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid email format",
@@ -39,7 +37,6 @@ func CreateContact(c *gin.Context) {
 		return
 	}
 
-	// Création du contact
 	contact := models.Contact{
 		FirstName:   contactInput.FirstName,
 		LastName:    contactInput.LastName,
@@ -49,7 +46,6 @@ func CreateContact(c *gin.Context) {
 		SubmittedAt: time.Now(),
 	}
 
-	// Enregistrement dans la base de données
 	result := db.DB.Create(&contact)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -58,7 +54,6 @@ func CreateContact(c *gin.Context) {
 		return
 	}
 
-	// Réponse de succès
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Contact request submitted successfully",
 		"id":      contact.ID,

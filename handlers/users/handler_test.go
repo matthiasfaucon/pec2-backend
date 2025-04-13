@@ -8,63 +8,18 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"pec2-backend/db"
+	"pec2-backend/testutils"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
-// setupTestDB configure une base de données mock pour les tests
-func setupTestDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock, func()) {
-	// Crée une connexion SQL mock
-	sqlDB, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("Erreur lors de la création de la connexion SQL mock: %s", err)
-	}
-
-	// Désactiver les logs pour les tests
-	newLogger := logger.New(
-		log.New(io.Discard, "", log.LstdFlags), // Output à io.Discard (remplace ioutil.Discard)
-		logger.Config{
-			LogLevel: logger.Silent, // Log level silencieux
-		},
-	)
-
-	// Configure GORM pour utiliser cette connexion
-	dialector := postgres.New(postgres.Config{
-		Conn:       sqlDB,
-		DriverName: "postgres",
-	})
-
-	gormDB, err := gorm.Open(dialector, &gorm.Config{
-		Logger: newLogger, // Utiliser le logger silencieux
-	})
-	if err != nil {
-		t.Fatalf("Erreur lors de l'ouverture de la connexion GORM: %s", err)
-	}
-
-	// Sauvegarde l'instance DB originale et la remplace par notre mock
-	originalDB := db.DB
-	db.DB = gormDB
-
-	// Retourne une fonction de nettoyage pour restaurer db.DB après le test
-	cleanup := func() {
-		db.DB = originalDB
-		sqlDB.Close()
-	}
-
-	return gormDB, mock, cleanup
-}
-
 func TestMain(m *testing.M) {
-	// Désactiver le logging de Gin
-	gin.SetMode(gin.TestMode)
+	// Initialiser l'environnement de test
+	testutils.InitTestMain()
+
 	// Redirection des logs standards pendant les tests
 	log.SetOutput(io.Discard)
 
@@ -77,14 +32,8 @@ func TestMain(m *testing.M) {
 	os.Exit(exitCode)
 }
 
-func setupTestRouter() *gin.Engine {
-	// gin.SetMode déjà défini dans TestMain
-	r := gin.New() // Utiliser gin.New() au lieu de gin.Default() pour ne pas avoir de logs
-	return r
-}
-
 func TestCreateUser_Success(t *testing.T) {
-	_, mock, cleanup := setupTestDB(t)
+	_, mock, cleanup := testutils.SetupTestDB(t)
 	defer cleanup()
 
 	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE email = (.+) AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT (.+)`).
@@ -93,10 +42,10 @@ func TestCreateUser_Success(t *testing.T) {
 
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO "users" (.+) RETURNING "id"`).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+		WillReturnRows(mock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
-	r := setupTestRouter()
+	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
 	userData := map[string]string{
@@ -120,7 +69,7 @@ func TestCreateUser_Success(t *testing.T) {
 }
 
 func TestCreateUser_EmptyEmail(t *testing.T) {
-	r := setupTestRouter()
+	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
 	userData := map[string]string{
@@ -143,7 +92,7 @@ func TestCreateUser_EmptyEmail(t *testing.T) {
 }
 
 func TestCreateUser_InvalidEmailFormat(t *testing.T) {
-	r := setupTestRouter()
+	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
 	userData := map[string]string{
@@ -167,7 +116,7 @@ func TestCreateUser_InvalidEmailFormat(t *testing.T) {
 
 func TestCreateUser_EmptyPassword(t *testing.T) {
 	// Configuration du routeur
-	r := setupTestRouter()
+	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
 	// Données avec mot de passe vide
@@ -191,7 +140,7 @@ func TestCreateUser_EmptyPassword(t *testing.T) {
 }
 
 func TestCreateUser_ShortPassword(t *testing.T) {
-	r := setupTestRouter()
+	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
 	userData := map[string]string{
@@ -227,14 +176,14 @@ func TestCreateUser_WeakPassword(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, mock, cleanup := setupTestDB(t)
+			_, mock, cleanup := testutils.SetupTestDB(t)
 			defer cleanup()
 
 			mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE email = (.+) AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT (.+)`).
 				WithArgs("test@example.com", 1).
 				WillReturnError(gorm.ErrRecordNotFound)
 
-			r := setupTestRouter()
+			r := testutils.SetupTestRouter()
 			r.POST("/user", CreateUser)
 
 			userData := map[string]string{
@@ -259,14 +208,14 @@ func TestCreateUser_WeakPassword(t *testing.T) {
 }
 
 func TestCreateUser_EmailAlreadyExists(t *testing.T) {
-	_, mock, cleanup := setupTestDB(t)
+	_, mock, cleanup := testutils.SetupTestDB(t)
 	defer cleanup()
 
 	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE email = (.+) AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT (.+)`).
 		WithArgs("existing@example.com", 1).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "email"}).AddRow(1, "existing@example.com"))
+		WillReturnRows(mock.NewRows([]string{"id", "email"}).AddRow(1, "existing@example.com"))
 
-	r := setupTestRouter()
+	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
 	userData := map[string]string{
@@ -289,7 +238,7 @@ func TestCreateUser_EmailAlreadyExists(t *testing.T) {
 }
 
 func TestCreateUser_DatabaseError(t *testing.T) {
-	_, mock, cleanup := setupTestDB(t)
+	_, mock, cleanup := testutils.SetupTestDB(t)
 	defer cleanup()
 
 	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE email = (.+) AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT (.+)`).
@@ -301,7 +250,7 @@ func TestCreateUser_DatabaseError(t *testing.T) {
 		WillReturnError(gorm.ErrInvalidDB)
 	mock.ExpectRollback()
 
-	r := setupTestRouter()
+	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
 	userData := map[string]string{
