@@ -15,6 +15,10 @@ import (
 // @description API pour le projet PEC2 Backend
 // @host localhost:8080
 // @BasePath /
+// @SecurityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Entrez le JWT avec le préfixe Bearer: Bearer <JWT>
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 

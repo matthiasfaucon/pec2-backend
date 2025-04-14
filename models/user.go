@@ -41,3 +41,10 @@ type UserCreate struct {
 	Email    string `json:"email" binding:"required,email" example:"utilisateur@exemple.com"`
 	Password string `json:"password" binding:"required,min=6" example:"Motdepasse123"`
 }
+
+// PasswordUpdate modèle pour la mise à jour du mot de passe
+// @Description modèle pour mettre à jour le mot de passe d'un utilisateur
+type PasswordUpdate struct {
+	OldPassword string `json:"oldPassword" binding:"required" example:"AncienMotdepasse123"`
+	NewPassword string `json:"newPassword" binding:"required,min=6" example:"NouveauMotdepasse123"`
+}
