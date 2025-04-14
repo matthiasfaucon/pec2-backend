@@ -13,6 +13,7 @@ func SetupRouter() *gin.Engine {
 
 	AuthRoutes(r)
 	ContactsRoutes(r)
+	UsersRoutes(r)
 
 	return r
 }
