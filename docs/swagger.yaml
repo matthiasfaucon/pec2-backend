@@ -49,6 +49,20 @@ definitions:
     - message
     - subject
     type: object
+  models.PasswordUpdate:
+    description: modèle pour mettre à jour le mot de passe d'un utilisateur
+    properties:
+      newPassword:
+        example: NouveauMotdepasse123
+        minLength: 6
+        type: string
+      oldPassword:
+        example: AncienMotdepasse123
+        type: string
+    required:
+    - newPassword
+    - oldPassword
+    type: object
   models.UserCreate:
     description: model for create a user
     properties:
@@ -267,4 +281,61 @@ paths:
       summary: Get user by ID
       tags:
       - users
+  /users/password:
+    put:
+      consumes:
+      - application/json
+      description: Update user's password by verifying the old password and setting
+        a new one
+      parameters:
+      - description: Password update information
+        in: body
+        name: password
+        required: true
+        schema:
+          $ref: '#/definitions/models.PasswordUpdate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Password updated successfully'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Invalid request'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Invalid old password'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: User not found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error updating password'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update user password
+      tags:
+      - users
+securityDefinitions:
+  BearerAuth:
+    description: 'Entrez le JWT avec le préfixe Bearer: Bearer <JWT>'
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

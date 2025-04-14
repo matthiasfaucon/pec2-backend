@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // @Summary Get all users
@@ -62,4 +63,60 @@ func GetUserByID(c *gin.Context) {
 	user.Password = ""
 
 	c.JSON(http.StatusOK, gin.H{"user": user})
+}
+
+// @Summary Update user password
+// @Description Update user's password by verifying the old password and setting a new one
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param password body models.PasswordUpdate true "Password update information"
+// @Security BearerAuth
+// @Success 200 {object} map[string]string "message: Password updated successfully"
+// @Failure 400 {object} map[string]string "error: Invalid request"
+// @Failure 401 {object} map[string]string "error: Invalid old password"
+// @Failure 404 {object} map[string]string "error: User not found"
+// @Failure 500 {object} map[string]string "error: Error updating password"
+// @Router /users/password [put]
+func UpdatePassword(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	var passwordUpdate models.PasswordUpdate
+	if err := c.ShouldBindJSON(&passwordUpdate); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data: " + err.Error()})
+		return
+	}
+
+	if len(passwordUpdate.NewPassword) < 6 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "The new password must contain at least 6 characters"})
+		return
+	}
+
+	var user models.User
+	if result := db.DB.First(&user, userID); result.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(passwordUpdate.OldPassword)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect old password"})
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(passwordUpdate.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error hashing password"})
+		return
+	}
+
+	if result := db.DB.Model(&user).Update("password", string(hashedPassword)); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
 }
