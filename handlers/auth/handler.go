@@ -101,7 +101,7 @@ func CreateUser(c *gin.Context) {
 	passwordHash, err := hashPassword(user.Password)
 
 	if err != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Erreur lors du hash du mot de passe"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Error when hashing password"})
 		return
 	}
 
@@ -210,7 +210,7 @@ func Login(c *gin.Context) {
 
 	token, err := generateJWT(user)
 	if err != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Erreur lors de la création du token"})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Error when generating JWT"})
 		return
 	}
 
