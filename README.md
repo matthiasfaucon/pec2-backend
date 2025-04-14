@@ -36,6 +36,10 @@ L'API sera disponible sur `http://localhost:8080`
 swag init
 ```
 
+## Le Swagger se trouve à l'url suivante
+```bash
+http://localhost:8080/swagger/index.html
+```
 
 ## Lancer les tests
 

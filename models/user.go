@@ -19,20 +19,21 @@ const (
 
 type User struct {
 	gorm.Model
-	Email              string       `json:"email" binding:"required,email"`
-	Password           string       `json:"password" binding:"required,min=6"`
-	UserName           string       `json:"username"`
-	Role               Role         `json:"role"`
-	Bio                string       `json:"bio"`
-	ProfilePicture     string       `json:"profilePicture"`
-	StripeCustomerId   string       `json:"stripeCustomerId"`
-	SubscriptionPrice  int          `json:"subscriptionPrice"`
-	Enable             bool         `json:"enable"`
-	SubscriptionEnable bool         `json:"subscriptionEnable"`
-	CommentsEnable     bool         `json:"commentsEnable"`
-	MessageEnable      bool         `json:"messageEnable"`
-	EmailVerifiedAt    sql.NullTime `json:"emailVerifiedAt"`
-	Siret              string       `json:"siret"`
+	Email                  string       `json:"email" binding:"required,email"`
+	Password               string       `json:"password" binding:"required,min=6"`
+	UserName               string       `json:"username"`
+	Role                   Role         `json:"role"`
+	Bio                    string       `json:"bio"`
+	ProfilePicture         string       `json:"profilePicture"`
+	StripeCustomerId       string       `json:"stripeCustomerId"`
+	SubscriptionPrice      int          `json:"subscriptionPrice"`
+	Enable                 bool         `json:"enable"`
+	SubscriptionEnable     bool         `json:"subscriptionEnable"`
+	CommentsEnable         bool         `json:"commentsEnable"`
+	MessageEnable          bool         `json:"messageEnable"`
+	EmailVerifiedAt        sql.NullTime `json:"emailVerifiedAt"`
+	Siret                  string       `json:"siret"`
+	TokenVerificationEmail string       `json:"TokenVerificationEmail"`
 }
 
 // UserCreate model for create a user

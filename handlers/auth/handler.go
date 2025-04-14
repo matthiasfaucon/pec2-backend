@@ -4,15 +4,14 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
-	"os"
 	"pec2-backend/db"
 	"pec2-backend/models"
 	"pec2-backend/utils"
+	mailsmodels "pec2-backend/utils/mails-models"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -128,6 +127,24 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
+	token, err := utils.GenerateJWT(user, 1)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Error when generating JWT"})
+		return
+	}
+
+	user.TokenVerificationEmail = token
+
+	resultSaveUser := db.DB.Save(&user)
+	if resultSaveUser.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": resultSaveUser.Error.Error(),
+		})
+		return
+	}
+
+	mailsmodels.ConfirmEmail(user.Email, token)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User created successfully",
 		"email":   user.Email,
@@ -208,7 +225,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	token, err := generateJWT(user)
+	token, err := utils.GenerateJWT(user, 72)
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Error when generating JWT"})
 		return
@@ -217,6 +234,68 @@ func Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"token": token,
 	})
+}
+
+// @Summary Validation email
+// @Description After create account, user valid it email
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param token path string true "JWT Token sent in the URL"
+// @Success 200 {object} map[string]interface{} "message": "User validate account"
+// @Failure 400 {object} map[string]interface{} "error: User already validated account"
+// @Failure 401 {object} map[string]interface{} "error: user not found or can't decode JWT"
+// @Router /valid-email/{token} [get]
+func ValidEmail(c *gin.Context) {
+	token := c.Param("token")
+	var user models.User
+
+	claims, err := utils.DecodeJWT(token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "can't decode JWT",
+		})
+		return
+	}
+
+	result := db.DB.Where("id = ?", claims["user_id"]).First(&user)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "User not found",
+			})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Database error: " + result.Error.Error(),
+			})
+		}
+		return
+	}
+
+	if user.EmailVerifiedAt.Valid {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "User already validated account",
+		})
+	}
+
+	user.EmailVerifiedAt = sql.NullTime{
+		Time:  time.Now(),
+		Valid: true,
+	}
+
+	resultSaveUser := db.DB.Save(&user)
+	if resultSaveUser.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": resultSaveUser.Error.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User validate account",
+	})
+
 }
 
 func hashPassword(password string) (string, error) {
@@ -230,17 +309,4 @@ func hashPassword(password string) (string, error) {
 func samePassword(formPassword string, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(formPassword))
 	return err == nil
-}
-
-func generateJWT(user models.User) (string, error) {
-	var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
-
-	claims := jwt.MapClaims{
-		"user_id": user.ID,
-		"role":    user.Role,
-		"exp":     time.Now().Add(time.Hour * 72).Unix(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
 }
