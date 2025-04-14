@@ -3,7 +3,6 @@ package auth
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	"pec2-backend/db"
@@ -182,9 +181,13 @@ func Login(c *gin.Context) {
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			fmt.Println("Utilisateur non trouvé.")
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "User not found",
+			})
 		} else {
-			fmt.Println("Erreur lors de la requête :", result.Error)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Database error: " + result.Error.Error(),
+			})
 		}
 		return
 	}
@@ -214,7 +217,6 @@ func Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"token": token,
 	})
-
 }
 
 func hashPassword(password string) (string, error) {

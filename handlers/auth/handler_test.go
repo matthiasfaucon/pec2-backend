@@ -2,6 +2,7 @@ package auth
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"io"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"pec2-backend/testutils"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
@@ -17,16 +19,12 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	// Initialiser l'environnement de test
 	testutils.InitTestMain()
 
-	// Redirection des logs standards pendant les tests
 	log.SetOutput(io.Discard)
 
-	// Exécution de tous les tests
 	exitCode := m.Run()
 
-	// Restauration des logs standard
 	log.SetOutput(os.Stdout)
 
 	os.Exit(exitCode)
@@ -293,7 +291,96 @@ func TestSamePassword_Incorrect(t *testing.T) {
 
 }
 
-//TODO test for login
-// 1. user avec un bon mail et un bon pwd
-// 2. user avec un bon mail et un mauvais pwd
-//3. user avec un email inexistant
+func TestLogin_Success(t *testing.T) {
+	_, mock, cleanup := testutils.SetupTestDB(t)
+	defer cleanup()
+
+	now := time.Now()
+	mock.ExpectQuery(`SELECT \* FROM "users" WHERE email = \$1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs("user@example.com", 1).
+		WillReturnRows(mock.NewRows([]string{"id", "email", "password", "email_verified_at"}).
+			AddRow(1, "user@example.com", "$2a$10$8b9qfHvbQVnP1IgEyd/AX.X5PCNGO/ZVE13NZS8xg3wDo6f4rWpiW", sql.NullTime{Time: now, Valid: true}))
+
+	r := testutils.SetupTestRouter()
+	r.POST("/login", Login)
+
+	userData := map[string]string{
+		"email":    "user@example.com",
+		"password": "Test123!",
+	}
+	jsonData, _ := json.Marshal(userData)
+
+	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonData))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	r.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	var respBody map[string]string
+	json.Unmarshal(resp.Body.Bytes(), &respBody)
+	assert.NotEmpty(t, respBody["token"])
+}
+
+func TestLogin_InvalidPassword(t *testing.T) {
+	_, mock, cleanup := testutils.SetupTestDB(t)
+	defer cleanup()
+
+	now := time.Now()
+	mock.ExpectQuery(`SELECT \* FROM "users" WHERE email = \$1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs("user@example.com", 1).
+		WillReturnRows(mock.NewRows([]string{"id", "email", "password", "email_verified_at"}).
+			AddRow(1, "user@example.com", "$2a$10$8b9qfHvbQVnP1IgEyd/AX.X5PCNGO/ZVE13NZS8xg3wDo6f4rWpiW", sql.NullTime{Time: now, Valid: true}))
+
+	r := testutils.SetupTestRouter()
+	r.POST("/login", Login)
+
+	userData := map[string]string{
+		"email":    "user@example.com",
+		"password": "MotDePasseIncorrect123",
+	}
+	jsonData, _ := json.Marshal(userData)
+
+	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonData))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	r.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusUnauthorized, resp.Code)
+
+	var respBody map[string]string
+	json.Unmarshal(resp.Body.Bytes(), &respBody)
+	assert.Equal(t, "Wrong credentials", respBody["error"])
+}
+
+func TestLogin_UserNotFound(t *testing.T) {
+	_, mock, cleanup := testutils.SetupTestDB(t)
+	defer cleanup()
+
+	mock.ExpectQuery(`SELECT \* FROM "users" WHERE email = \$1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs("nonexistent@example.com", 1).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	r := testutils.SetupTestRouter()
+	r.POST("/login", Login)
+
+	userData := map[string]string{
+		"email":    "nonexistent@example.com",
+		"password": "Password123",
+	}
+	jsonData, _ := json.Marshal(userData)
+
+	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonData))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	r.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusUnauthorized, resp.Code)
+
+	var respBody map[string]string
+	json.Unmarshal(resp.Body.Bytes(), &respBody)
+	assert.Equal(t, "User not found", respBody["error"])
+}
