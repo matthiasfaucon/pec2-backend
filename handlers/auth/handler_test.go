@@ -43,6 +43,11 @@ func TestCreateUser_Success(t *testing.T) {
 		WillReturnRows(mock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
+	mock.ExpectBegin()
+	mock.ExpectExec(`UPDATE "users" SET (.+) WHERE (.+)`).
+		WillReturnResult(testutils.NewResult(1, 1))
+	mock.ExpectCommit()
+
 	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
@@ -323,6 +328,37 @@ func TestLogin_Success(t *testing.T) {
 	assert.NotEmpty(t, respBody["token"])
 }
 
+func TestLogin_EmailNotVerified(t *testing.T) {
+	_, mock, cleanup := testutils.SetupTestDB(t)
+	defer cleanup()
+
+	mock.ExpectQuery(`SELECT \* FROM "users" WHERE email = \$1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs("user@example.com", 1).
+		WillReturnRows(mock.NewRows([]string{"id", "email", "password", "email_verified_at"}).
+			AddRow(1, "user@example.com", "$2a$10$8b9qfHvbQVnP1IgEyd/AX.X5PCNGO/ZVE13NZS8xg3wDo6f4rWpiW", sql.NullTime{Valid: false}))
+
+	r := testutils.SetupTestRouter()
+	r.POST("/login", Login)
+
+	userData := map[string]string{
+		"email":    "user@example.com",
+		"password": "Test123!",
+	}
+	jsonData, _ := json.Marshal(userData)
+
+	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonData))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	r.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusUnauthorized, resp.Code)
+
+	var respBody map[string]string
+	json.Unmarshal(resp.Body.Bytes(), &respBody)
+	assert.Equal(t, "user don't valid email", respBody["error"])
+}
+
 func TestLogin_InvalidPassword(t *testing.T) {
 	_, mock, cleanup := testutils.SetupTestDB(t)
 	defer cleanup()
@@ -383,4 +419,119 @@ func TestLogin_UserNotFound(t *testing.T) {
 	var respBody map[string]string
 	json.Unmarshal(resp.Body.Bytes(), &respBody)
 	assert.Equal(t, "User not found", respBody["error"])
+}
+
+func TestValidEmail_Success(t *testing.T) {
+	_, mock, cleanup := testutils.SetupTestDB(t)
+	defer cleanup()
+
+	// Mock pour le décodage du JWT
+	os.Setenv("JWT_SECRET", "test_secret_key")
+
+	// Mock pour la recherche de l'utilisateur par ID avec float64 au lieu de int64
+	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE id = \$1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs(float64(1), 1).
+		WillReturnRows(mock.NewRows([]string{"id", "email", "email_verified_at"}).
+			AddRow(1, "test@example.com", sql.NullTime{Valid: false}))
+
+	// Mock pour la mise à jour de email_verified_at
+	mock.ExpectBegin()
+	mock.ExpectExec(`UPDATE "users" SET (.+) WHERE (.+)`).
+		WillReturnResult(testutils.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	r := testutils.SetupTestRouter()
+	r.GET("/valid-email/:token", ValidEmail)
+
+	// Créer un token valide pour les tests
+	token, err := testutils.GenerateTestToken(1, "user")
+	assert.NoError(t, err)
+
+	req, _ := http.NewRequest(http.MethodGet, "/valid-email/"+token, nil)
+	resp := httptest.NewRecorder()
+
+	r.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	var respBody map[string]string
+	err = json.Unmarshal(resp.Body.Bytes(), &respBody)
+	assert.NoError(t, err, "Erreur lors de la désérialisation de la réponse JSON: %s", resp.Body.String())
+	assert.Equal(t, "User validate account", respBody["message"])
+}
+
+func TestValidEmail_AlreadyVerified(t *testing.T) {
+	_, mock, cleanup := testutils.SetupTestDB(t)
+	defer cleanup()
+
+	os.Setenv("JWT_SECRET", "test_secret_key")
+
+	now := time.Now()
+	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE id = \$1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs(float64(1), 1).
+		WillReturnRows(mock.NewRows([]string{"id", "email", "email_verified_at"}).
+			AddRow(1, "test@example.com", sql.NullTime{Time: now, Valid: true}))
+
+	r := testutils.SetupTestRouter()
+	r.GET("/valid-email/:token", ValidEmail)
+
+	token, err := testutils.GenerateTestToken(1, "user")
+	assert.NoError(t, err)
+
+	req, _ := http.NewRequest(http.MethodGet, "/valid-email/"+token, nil)
+	resp := httptest.NewRecorder()
+
+	r.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+
+	var respBody map[string]string
+	err = json.Unmarshal(resp.Body.Bytes(), &respBody)
+	assert.NoError(t, err, "Erreur lors de la désérialisation de la réponse JSON: %s", resp.Body.String())
+	assert.Equal(t, "User already validated account", respBody["error"])
+}
+
+func TestValidEmail_UserNotFound(t *testing.T) {
+	_, mock, cleanup := testutils.SetupTestDB(t)
+	defer cleanup()
+
+	os.Setenv("JWT_SECRET", "test_secret_key")
+
+	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE id = \$1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs(float64(999), 1).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	r := testutils.SetupTestRouter()
+	r.GET("/valid-email/:token", ValidEmail)
+
+	token, err := testutils.GenerateTestToken(999, "user")
+	assert.NoError(t, err)
+
+	req, _ := http.NewRequest(http.MethodGet, "/valid-email/"+token, nil)
+	resp := httptest.NewRecorder()
+
+	r.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusUnauthorized, resp.Code)
+
+	var respBody map[string]string
+	err = json.Unmarshal(resp.Body.Bytes(), &respBody)
+	assert.NoError(t, err, "Erreur lors de la désérialisation de la réponse JSON: %s", resp.Body.String())
+	assert.Equal(t, "User not found", respBody["error"])
+}
+
+func TestValidEmail_InvalidToken(t *testing.T) {
+	r := testutils.SetupTestRouter()
+	r.GET("/valid-email/:token", ValidEmail)
+
+	req, _ := http.NewRequest(http.MethodGet, "/valid-email/invalid_token", nil)
+	resp := httptest.NewRecorder()
+
+	r.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusUnauthorized, resp.Code)
+
+	var respBody map[string]string
+	json.Unmarshal(resp.Body.Bytes(), &respBody)
+	assert.Equal(t, "can't decode JWT", respBody["error"])
 }

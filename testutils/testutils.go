@@ -1,14 +1,18 @@
 package testutils
 
 import (
+	"database/sql/driver"
 	"io"
 	"log"
+	"os"
 	"testing"
+	"time"
 
 	"pec2-backend/db"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -21,9 +25,9 @@ func SetupTestDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock, func()) {
 	}
 
 	newLogger := logger.New(
-		log.New(io.Discard, "", log.LstdFlags), 
+		log.New(io.Discard, "", log.LstdFlags),
 		logger.Config{
-			LogLevel: logger.Silent, 
+			LogLevel: logger.Silent,
 		},
 	)
 
@@ -33,7 +37,7 @@ func SetupTestDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock, func()) {
 	})
 
 	gormDB, err := gorm.Open(dialector, &gorm.Config{
-		Logger: newLogger, 
+		Logger: newLogger,
 	})
 	if err != nil {
 		t.Fatalf("Erreur lors de l'ouverture de la connexion GORM: %s", err)
@@ -51,10 +55,43 @@ func SetupTestDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock, func()) {
 }
 
 func SetupTestRouter() *gin.Engine {
-	r := gin.New() 
+	r := gin.New()
 	return r
 }
 
 func InitTestMain() {
 	gin.SetMode(gin.TestMode)
+}
+
+type Result struct {
+	lastInsertID int64
+	rowsAffected int64
+}
+
+func (r Result) LastInsertId() (int64, error) {
+	return r.lastInsertID, nil
+}
+
+func (r Result) RowsAffected() (int64, error) {
+	return r.rowsAffected, nil
+}
+
+func NewResult(lastInsertID int64, rowsAffected int64) driver.Result {
+	return Result{lastInsertID: lastInsertID, rowsAffected: rowsAffected}
+}
+
+func GenerateTestToken(userID uint, role string) (string, error) {
+	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
+	if len(jwtSecret) == 0 {
+		jwtSecret = []byte("test_secret_key")
+	}
+
+	claims := jwt.MapClaims{
+		"user_id": userID,
+		"role":    role,
+		"exp":     time.Now().Add(time.Hour).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(jwtSecret)
 }

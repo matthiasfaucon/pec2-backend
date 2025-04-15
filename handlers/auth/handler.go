@@ -277,6 +277,7 @@ func ValidEmail(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "User already validated account",
 		})
+		return
 	}
 
 	user.EmailVerifiedAt = sql.NullTime{
@@ -295,7 +296,6 @@ func ValidEmail(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User validate account",
 	})
-
 }
 
 func hashPassword(password string) (string, error) {
