@@ -58,7 +58,6 @@ func GetUserByID(c *gin.Context) {
 		return
 	}
 
-	// Ne pas envoyer le mot de passe
 	user.Password = ""
 
 	c.JSON(http.StatusOK, gin.H{"user": user})
