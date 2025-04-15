@@ -46,3 +46,8 @@ http://localhost:8080/swagger/index.html
 ```bash
 go test ./handlers/auth -v
 ```
+
+```bash
+go test ./...
+```
+
