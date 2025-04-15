@@ -332,6 +332,38 @@ paths:
       summary: Update user password
       tags:
       - users
+  /valid-email/{token}:
+    get:
+      consumes:
+      - application/json
+      description: After create account, user valid it email
+      parameters:
+      - description: JWT Token sent in the URL
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message": "User validate account'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: User already validated account'
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 'error: user not found or can''t decode JWT'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Validation email
+      tags:
+      - auth
 securityDefinitions:
   BearerAuth:
     description: 'Entrez le JWT avec le préfixe Bearer: Bearer <JWT>'

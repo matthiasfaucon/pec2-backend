@@ -9,4 +9,5 @@ import (
 func AuthRoutes(r *gin.Engine) {
 	r.POST("/register", auth.CreateUser)
 	r.POST("/login", auth.Login)
+	r.GET("/valid-email/:token", auth.ValidEmail)
 }
