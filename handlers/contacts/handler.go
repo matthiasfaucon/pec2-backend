@@ -60,13 +60,16 @@ func CreateContact(c *gin.Context) {
 	})
 }
 
-// @Summary Get all contact requests
-// @Description Retrieves a list of all contact requests
+// @Summary Get all contact requests (Admin)
+// @Description Retrieves a list of all contact requests (Admin access only)
 // @Tags contacts
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Success 200 {object} map[string][]models.Contact
-// @Failure 500 {object} map[string]string
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 403 {object} map[string]string "error: Forbidden - Admin access required"
+// @Failure 500 {object} map[string]string "error: Error message"
 // @Router /contacts [get]
 func GetAllContacts(c *gin.Context) {
 	var contacts []models.Contact
