@@ -223,7 +223,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieves a list of all users
+      description: Retrieves a list of all users (Admin access only)
       produces:
       - application/json
       responses:
@@ -232,13 +232,27 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Forbidden - Admin access required'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: 'error: error message'
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Get all users
+      security:
+      - BearerAuth: []
+      summary: Get all users (Admin)
       tags:
       - users
   /users/{id}:

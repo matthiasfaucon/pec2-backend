@@ -216,7 +216,12 @@ const docTemplate = `{
         },
         "/users": {
             "get": {
-                "description": "Retrieves a list of all users",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a list of all users (Admin access only)",
                 "consumes": [
                     "application/json"
                 ],
@@ -226,13 +231,31 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Get all users",
+                "summary": "Get all users (Admin)",
                 "responses": {
                     "200": {
                         "description": "users: array of user objects",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "error: Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "error: Forbidden - Admin access required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {

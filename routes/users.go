@@ -8,12 +8,17 @@ import (
 )
 
 func UsersRoutes(r *gin.Engine) {
-	r.GET("/users", users.GetAllUsers)
+	
+	// Route accessible sans authentification
 	r.GET("/users/:id", users.GetUserByID)
 
-	protected := r.Group("")
-	protected.Use(middleware.JWTAuth())
+	userRoutes := r.Group("/users")
+	userRoutes.Use(middleware.JWTAuth())
 	{
-		protected.PUT("/users/password", users.UpdatePassword)
+		// Route accessible uniquement aux administrateurs
+		userRoutes.GET("", middleware.AdminAuth(), users.GetAllUsers)
+
+		// Routes accessibles à tout utilisateur authentifié
+		userRoutes.PUT("/password", users.UpdatePassword)
 	}
 }
