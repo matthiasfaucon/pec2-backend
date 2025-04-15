@@ -38,7 +38,6 @@ type User struct {
 	DeletedAt              *time.Time   `json:"deletedAt,omitempty" gorm:"index"`
 }
 
-// TableName spécifie le nom de la table pour le modèle User
 func (User) TableName() string {
 	return "users"
 }
