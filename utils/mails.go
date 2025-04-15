@@ -8,7 +8,7 @@ import (
 
 func SendMail(email string, message []byte) {
 	from := "onlyflick.eemi@gmail.com"
-	password := os.Getenv("GOOGLE_MDP")
+	password := os.Getenv("GOOGLE_SMTP_MDP")
 	to := email
 
 	smtpHost := "smtp.gmail.com"

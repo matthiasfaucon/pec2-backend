@@ -7,7 +7,7 @@ import (
 
 func ConfirmEmail(email string, token string) {
 	link := "http://localhost:8080/valid-email/" + token
-	subject := "Inscription à OnlyFlick"
+	subject := "Subject: Inscription à OnlyFlick \r\n"
 	mime := "MIME-version: 1.0;\r\nContent-Type: text/html; charset=\"UTF-8\";\r\n\r\n"
 	body := fmt.Sprintf(`
 	<div style="background-color: #722ED1; width: 100%%; min-height: 300px; padding: 30px; box-sizing:border-box">
