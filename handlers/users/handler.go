@@ -9,12 +9,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// @Summary Get all users
-// @Description Retrieves a list of all users
+// @Summary Get all users (Admin)
+// @Description Retrieves a list of all users (Admin access only)
 // @Tags users
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Success 200 {object} map[string]interface{} "users: array of user objects"
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 403 {object} map[string]string "error: Forbidden - Admin access required"
 // @Failure 500 {object} map[string]string "error: error message"
 // @Router /users [get]
 func GetAllUsers(c *gin.Context) {

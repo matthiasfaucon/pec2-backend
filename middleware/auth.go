@@ -1,13 +1,11 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
-	"os"
+	"pec2-backend/utils"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
 )
 
 func JWTAuth() gin.HandlerFunc {
@@ -20,7 +18,6 @@ func JWTAuth() gin.HandlerFunc {
 		}
 
 		authHeader = strings.Trim(authHeader, "\"' ")
-
 		if !strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
 			authHeader = "Bearer " + authHeader
 		}
@@ -35,30 +32,34 @@ func JWTAuth() gin.HandlerFunc {
 		tokenString := parts[1]
 		tokenString = strings.Trim(tokenString, "\"' ")
 
-		claims := jwt.MapClaims{}
-
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-			jwtSecret := os.Getenv("JWT_SECRET")
-			return []byte(jwtSecret), nil
-		})
-
+		claims, err := utils.DecodeJWT(tokenString)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token: " + err.Error()})
 			c.Abort()
 			return
 		}
 
-		if !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		c.Set("user_id", claims["user_id"])
+		c.Set("role", claims["role"])
+		c.Next()
+	}
+}
+
+func AdminAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role, exists := c.Get("role")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Role not found in token"})
 			c.Abort()
 			return
 		}
 
-		c.Set("user_id", claims["user_id"])
-		c.Set("role", claims["role"])
+		if role != "ADMIN" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: admin role required"})
+			c.Abort()
+			return
+		}
+
 		c.Next()
 	}
 }
