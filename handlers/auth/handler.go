@@ -37,7 +37,6 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	// 1. Validation de l'email
 	if user.Email == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The email cannot be empty",
@@ -45,7 +44,6 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Vérification format email avec l'utilitaire de validation
 	if !utils.ValidateEmail(user.Email) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid email format",
@@ -53,7 +51,6 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	// 2. Validation du mot de passe
 	if user.Password == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The password cannot be empty",
@@ -68,7 +65,6 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Vérifier la complexité du mot de passe
 	hasLower := strings.ContainsAny(user.Password, "abcdefghijklmnopqrstuvwxyz")
 	hasUpper := strings.ContainsAny(user.Password, "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	hasDigit := strings.ContainsAny(user.Password, "0123456789")
@@ -80,23 +76,19 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	// 3. Vérifier si l'email existe déjà
 	var existingUser models.User
 	if err := db.DB.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
-		// L'email existe déjà
 		c.JSON(http.StatusConflict, gin.H{
 			"error": "This email is already used",
 		})
 		return
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		// Une autre erreur s'est produite lors de la vérification
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Error when checking the email existence",
 		})
 		return
 	}
 
-	// 4. Hachage du mot de passe et initialisation des valeurs par défaut
 	passwordHash, err := hashPassword(user.Password)
 
 	if err != nil {
@@ -118,7 +110,6 @@ func CreateUser(c *gin.Context) {
 	user.EmailVerifiedAt = sql.NullTime{Valid: false}
 	user.Siret = ""
 
-	// 5. Enregistrement de l'utilisateur dans la base de données
 	result := db.DB.Create(&user)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

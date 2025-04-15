@@ -34,13 +34,13 @@ func TestCreateUser_Success(t *testing.T) {
 	_, mock, cleanup := testutils.SetupTestDB(t)
 	defer cleanup()
 
-	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE email = (.+) AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT (.+)`).
+	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE email = (.+) ORDER BY "users"."id" LIMIT (.+)`).
 		WithArgs("test@example.com", 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO "users" (.+) RETURNING "id"`).
-		WillReturnRows(mock.NewRows([]string{"id"}).AddRow(1))
+		WillReturnRows(mock.NewRows([]string{"id"}).AddRow("test-uuid"))
 	mock.ExpectCommit()
 
 	mock.ExpectBegin()
@@ -214,9 +214,9 @@ func TestCreateUser_EmailAlreadyExists(t *testing.T) {
 	_, mock, cleanup := testutils.SetupTestDB(t)
 	defer cleanup()
 
-	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE email = (.+) AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT (.+)`).
+	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE email = (.+) ORDER BY "users"."id" LIMIT (.+)`).
 		WithArgs("existing@example.com", 1).
-		WillReturnRows(mock.NewRows([]string{"id", "email"}).AddRow(1, "existing@example.com"))
+		WillReturnRows(mock.NewRows([]string{"id", "email"}).AddRow("user-uuid", "existing@example.com"))
 
 	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
@@ -301,10 +301,10 @@ func TestLogin_Success(t *testing.T) {
 	defer cleanup()
 
 	now := time.Now()
-	mock.ExpectQuery(`SELECT \* FROM "users" WHERE email = \$1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT \$2`).
+	mock.ExpectQuery(`SELECT \* FROM "users" WHERE email = \$1 ORDER BY "users"."id" LIMIT \$2`).
 		WithArgs("user@example.com", 1).
 		WillReturnRows(mock.NewRows([]string{"id", "email", "password", "email_verified_at"}).
-			AddRow(1, "user@example.com", "$2a$10$8b9qfHvbQVnP1IgEyd/AX.X5PCNGO/ZVE13NZS8xg3wDo6f4rWpiW", sql.NullTime{Time: now, Valid: true}))
+			AddRow("user-uuid", "user@example.com", "$2a$10$8b9qfHvbQVnP1IgEyd/AX.X5PCNGO/ZVE13NZS8xg3wDo6f4rWpiW", sql.NullTime{Time: now, Valid: true}))
 
 	r := testutils.SetupTestRouter()
 	r.POST("/login", Login)
@@ -332,10 +332,10 @@ func TestLogin_EmailNotVerified(t *testing.T) {
 	_, mock, cleanup := testutils.SetupTestDB(t)
 	defer cleanup()
 
-	mock.ExpectQuery(`SELECT \* FROM "users" WHERE email = \$1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT \$2`).
+	mock.ExpectQuery(`SELECT \* FROM "users" WHERE email = \$1 ORDER BY "users"."id" LIMIT \$2`).
 		WithArgs("user@example.com", 1).
 		WillReturnRows(mock.NewRows([]string{"id", "email", "password", "email_verified_at"}).
-			AddRow(1, "user@example.com", "$2a$10$8b9qfHvbQVnP1IgEyd/AX.X5PCNGO/ZVE13NZS8xg3wDo6f4rWpiW", sql.NullTime{Valid: false}))
+			AddRow("user-uuid", "user@example.com", "$2a$10$8b9qfHvbQVnP1IgEyd/AX.X5PCNGO/ZVE13NZS8xg3wDo6f4rWpiW", sql.NullTime{Valid: false}))
 
 	r := testutils.SetupTestRouter()
 	r.POST("/login", Login)
@@ -364,10 +364,10 @@ func TestLogin_InvalidPassword(t *testing.T) {
 	defer cleanup()
 
 	now := time.Now()
-	mock.ExpectQuery(`SELECT \* FROM "users" WHERE email = \$1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT \$2`).
+	mock.ExpectQuery(`SELECT \* FROM "users" WHERE email = \$1 ORDER BY "users"."id" LIMIT \$2`).
 		WithArgs("user@example.com", 1).
 		WillReturnRows(mock.NewRows([]string{"id", "email", "password", "email_verified_at"}).
-			AddRow(1, "user@example.com", "$2a$10$8b9qfHvbQVnP1IgEyd/AX.X5PCNGO/ZVE13NZS8xg3wDo6f4rWpiW", sql.NullTime{Time: now, Valid: true}))
+			AddRow("user-uuid", "user@example.com", "$2a$10$8b9qfHvbQVnP1IgEyd/AX.X5PCNGO/ZVE13NZS8xg3wDo6f4rWpiW", sql.NullTime{Time: now, Valid: true}))
 
 	r := testutils.SetupTestRouter()
 	r.POST("/login", Login)
@@ -395,7 +395,7 @@ func TestLogin_UserNotFound(t *testing.T) {
 	_, mock, cleanup := testutils.SetupTestDB(t)
 	defer cleanup()
 
-	mock.ExpectQuery(`SELECT \* FROM "users" WHERE email = \$1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT \$2`).
+	mock.ExpectQuery(`SELECT \* FROM "users" WHERE email = \$1 ORDER BY "users"."id" LIMIT \$2`).
 		WithArgs("nonexistent@example.com", 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -425,16 +425,13 @@ func TestValidEmail_Success(t *testing.T) {
 	_, mock, cleanup := testutils.SetupTestDB(t)
 	defer cleanup()
 
-	// Mock pour le décodage du JWT
 	os.Setenv("JWT_SECRET", "test_secret_key")
 
-	// Mock pour la recherche de l'utilisateur par ID avec float64 au lieu de int64
-	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE id = \$1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT \$2`).
-		WithArgs(float64(1), 1).
+	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE id = \$1 ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs("test-uuid", 1).
 		WillReturnRows(mock.NewRows([]string{"id", "email", "email_verified_at"}).
-			AddRow(1, "test@example.com", sql.NullTime{Valid: false}))
+			AddRow("test-uuid", "test@example.com", sql.NullTime{Valid: false}))
 
-	// Mock pour la mise à jour de email_verified_at
 	mock.ExpectBegin()
 	mock.ExpectExec(`UPDATE "users" SET (.+) WHERE (.+)`).
 		WillReturnResult(testutils.NewResult(1, 1))
@@ -443,8 +440,7 @@ func TestValidEmail_Success(t *testing.T) {
 	r := testutils.SetupTestRouter()
 	r.GET("/valid-email/:token", ValidEmail)
 
-	// Créer un token valide pour les tests
-	token, err := testutils.GenerateTestToken(1, "user")
+	token, err := testutils.GenerateTestTokenString("test-uuid", "user")
 	assert.NoError(t, err)
 
 	req, _ := http.NewRequest(http.MethodGet, "/valid-email/"+token, nil)
@@ -467,15 +463,15 @@ func TestValidEmail_AlreadyVerified(t *testing.T) {
 	os.Setenv("JWT_SECRET", "test_secret_key")
 
 	now := time.Now()
-	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE id = \$1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT \$2`).
-		WithArgs(float64(1), 1).
+	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE id = \$1 ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs("test-uuid", 1).
 		WillReturnRows(mock.NewRows([]string{"id", "email", "email_verified_at"}).
-			AddRow(1, "test@example.com", sql.NullTime{Time: now, Valid: true}))
+			AddRow("test-uuid", "test@example.com", sql.NullTime{Time: now, Valid: true}))
 
 	r := testutils.SetupTestRouter()
 	r.GET("/valid-email/:token", ValidEmail)
 
-	token, err := testutils.GenerateTestToken(1, "user")
+	token, err := testutils.GenerateTestTokenString("test-uuid", "user")
 	assert.NoError(t, err)
 
 	req, _ := http.NewRequest(http.MethodGet, "/valid-email/"+token, nil)
@@ -497,14 +493,14 @@ func TestValidEmail_UserNotFound(t *testing.T) {
 
 	os.Setenv("JWT_SECRET", "test_secret_key")
 
-	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE id = \$1 AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT \$2`).
-		WithArgs(float64(999), 1).
+	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE id = \$1 ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs("nonexistent-uuid", 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
 	r := testutils.SetupTestRouter()
 	r.GET("/valid-email/:token", ValidEmail)
 
-	token, err := testutils.GenerateTestToken(999, "user")
+	token, err := testutils.GenerateTestTokenString("nonexistent-uuid", "user")
 	assert.NoError(t, err)
 
 	req, _ := http.NewRequest(http.MethodGet, "/valid-email/"+token, nil)
