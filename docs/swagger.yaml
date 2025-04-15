@@ -247,11 +247,11 @@ paths:
       - application/json
       description: Retrieves a user by their ID
       parameters:
-      - description: User ID
+      - description: User ID (UUID)
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:

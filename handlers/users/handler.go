@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"pec2-backend/db"
 	"pec2-backend/models"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -39,21 +38,21 @@ func GetAllUsers(c *gin.Context) {
 // @Tags users
 // @Accept json
 // @Produce json
-// @Param id path int true "User ID"
+// @Param id path string true "User ID (UUID)"
 // @Success 200 {object} map[string]interface{} "user: user object"
 // @Failure 400 {object} map[string]string "error: Invalid user ID"
 // @Failure 404 {object} map[string]string "error: User not found"
 // @Failure 500 {object} map[string]string "error: error message"
 // @Router /users/{id} [get]
 func GetUserByID(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	id := c.Param("id")
+	if id == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID d'utilisateur invalide"})
 		return
 	}
 
 	var user models.User
-	result := db.DB.First(&user, id)
+	result := db.DB.Where("id = ?", id).First(&user)
 	if result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Utilisateur non trouvé"})
 		return
@@ -97,7 +96,7 @@ func UpdatePassword(c *gin.Context) {
 	}
 
 	var user models.User
-	if result := db.DB.First(&user, userID); result.Error != nil {
+	if result := db.DB.Where("id = ?", userID).First(&user); result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}

@@ -80,9 +80,31 @@ func NewResult(lastInsertID int64, rowsAffected int64) driver.Result {
 	return Result{lastInsertID: lastInsertID, rowsAffected: rowsAffected}
 }
 
+// GenerateTestToken génère un token JWT pour les tests avec un ID numérique
 func GenerateTestToken(userID uint, role string) (string, error) {
+	// On utilise une clé secrète fixe pour les tests
 	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
 	if len(jwtSecret) == 0 {
+		// Utiliser une clé par défaut si aucune n'est définie
+		jwtSecret = []byte("test_secret_key")
+	}
+
+	claims := jwt.MapClaims{
+		"user_id": userID,
+		"role":    role,
+		"exp":     time.Now().Add(time.Hour).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(jwtSecret)
+}
+
+// GenerateTestTokenString génère un token JWT pour les tests avec un ID chaîne de caractères (UUID)
+func GenerateTestTokenString(userID string, role string) (string, error) {
+	// On utilise une clé secrète fixe pour les tests
+	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
+	if len(jwtSecret) == 0 {
+		// Utiliser une clé par défaut si aucune n'est définie
 		jwtSecret = []byte("test_secret_key")
 	}
 
