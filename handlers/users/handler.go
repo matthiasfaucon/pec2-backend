@@ -1,7 +1,6 @@
 package users
 
 import (
-	"log"
 	"net/http"
 	"pec2-backend/db"
 	"pec2-backend/models"
@@ -146,25 +145,18 @@ func UpdateUserProfile(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in token"})
 		return
 	}
-	log.Printf("Mise à jour du profil pour l'utilisateur ID: %v", userID)
 
 	var user models.User
 	if result := db.DB.Where("id = ?", userID).First(&user); result.Error != nil {
-		log.Printf("Utilisateur non trouvé: %v", result.Error)
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
-	log.Printf("Utilisateur trouvé: %s (ID: %s)", user.Email, user.ID)
-	log.Printf("Valeur initiale de ProfilePicture: %s", user.ProfilePicture)
 
 	var formData models.UserUpdateFormData
 	if err := c.ShouldBind(&formData); err != nil {
-		log.Printf("Erreur de binding du formulaire: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form data: " + err.Error()})
 		return
 	}
-	log.Printf("Données du formulaire reçues: UserName=%s, Bio=%s, Email=%s",
-		formData.UserName, formData.Bio, formData.Email)
 
 	if formData.UserName != "" {
 		user.UserName = formData.UserName
@@ -174,48 +166,25 @@ func UpdateUserProfile(c *gin.Context) {
 	}
 	if formData.Email != "" {
 		if !utils.ValidateEmail(formData.Email) {
-			log.Printf("Format d'email invalide: %s", formData.Email)
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
 			return
 		}
 		user.Email = formData.Email
 	}
 
-	// Vérifier si un fichier image a été envoyé
 	file, err := c.FormFile("profilePicture")
-	if err != nil {
-		log.Printf("Aucun fichier image trouvé ou erreur: %v", err)
-	} else if file != nil {
-		log.Printf("Fichier image reçu: %s, taille: %d", file.Filename, file.Size)
-
-		// Si une image a été téléchargée
+	if err == nil && file != nil {
 		imageURL, err := utils.UploadProfilePicture(file)
 		if err != nil {
-			log.Printf("Erreur lors de l'upload sur Cloudinary: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading profile picture: " + err.Error()})
 			return
 		}
-		log.Printf("Image téléchargée sur Cloudinary avec succès, URL: %s", imageURL)
 		user.ProfilePicture = imageURL
-		log.Printf("URL d'image mise à jour dans l'objet utilisateur: %s", user.ProfilePicture)
 	}
-
-	// Sauvegarder les modifications
-	log.Printf("Avant sauvegarde - ProfilePicture: %s", user.ProfilePicture)
 
 	if result := db.DB.Save(&user); result.Error != nil {
-		log.Printf("Erreur lors de la sauvegarde en BDD: %v", result.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating profile: " + result.Error.Error()})
 		return
-	}
-	log.Printf("Profil utilisateur mis à jour avec succès en BDD")
-
-	// Vérifier après sauvegarde
-	var updatedUser models.User
-	if result := db.DB.Where("id = ?", userID).First(&updatedUser); result.Error != nil {
-		log.Printf("Erreur lors de la récupération de l'utilisateur après mise à jour: %v", result.Error)
-	} else {
-		log.Printf("Après sauvegarde - ProfilePicture: %s", updatedUser.ProfilePicture)
 	}
 
 	user.Password = ""
