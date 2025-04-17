@@ -31,8 +31,8 @@ func main() {
 
 	// Initialiser Cloudinary
 	if err := utils.InitCloudinary(); err != nil {
-		log.Printf("Avertissement: Initialisation de Cloudinary a échoué: %v", err)
-		log.Println("Le téléchargement d'images ne fonctionnera pas correctement.")
+		log.Printf("Warning: Cloudinary initialization failed: %v", err)
+		log.Println("Image upload will not work correctly.")
 	}
 
 	r := routes.SetupRouter()

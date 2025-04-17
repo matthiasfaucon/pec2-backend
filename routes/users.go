@@ -8,7 +8,7 @@ import (
 )
 
 func UsersRoutes(r *gin.Engine) {
-	
+
 	// Route accessible sans authentification
 	r.GET("/users/:id", users.GetUserByID)
 
