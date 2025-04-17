@@ -5,17 +5,14 @@ import (
 	"time"
 )
 
-// Définition des rôles utilisateur
 type Role string
 
-// Valeurs possibles pour le type Role
 const (
 	AdminRole  Role = "ADMIN"
 	UserRole   Role = "USER"
 	Subscriber Role = "SUBSCRIBER"
 )
 
-// User représente un utilisateur dans la base de données
 type User struct {
 	ID                     string       `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
 	Email                  string       `json:"email" binding:"required,email"`
@@ -54,4 +51,12 @@ type UserCreate struct {
 type PasswordUpdate struct {
 	OldPassword string `json:"oldPassword" binding:"required" example:"AncienMotdepasse123"`
 	NewPassword string `json:"newPassword" binding:"required,min=6" example:"NouveauMotdepasse123"`
+}
+
+
+
+type UserUpdateFormData struct {
+	UserName string `form:"username"`
+	Bio      string `form:"bio"`
+	Email    string `form:"email"`
 }

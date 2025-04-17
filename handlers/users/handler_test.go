@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 )
@@ -84,22 +85,25 @@ func TestGetAllUsers_DatabaseError(t *testing.T) {
 	assert.Contains(t, respBody["error"], "invalid db")
 }
 
-func TestGetUserByID_Success(t *testing.T) {
+func TestGetUserProfile_Success(t *testing.T) {
 	_, mock, cleanup := testutils.SetupTestDB(t)
 	defer cleanup()
 
+	userID := "user-uuid-1"
 	createdAt := time.Now()
-	rows := mock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "email", "password", "user_name", "role", "bio", "profile_picture", "stripe_customer_id", "subscription_price", "enable", "subscription_enable", "comments_enable", "message_enable", "email_verified_at", "siret"}).
-		AddRow("user-uuid-1", createdAt, createdAt, nil, "user1@example.com", "hashedpassword1", "User1", "USER", "Bio 1", "", "", 0, true, false, true, true, nil, "")
 
-	mock.ExpectQuery(`SELECT \* FROM "users" WHERE id = \$1 ORDER BY "users"."id" LIMIT \$2`).
-		WithArgs("user-uuid-1", 1).
-		WillReturnRows(rows)
+	rows := mock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "email", "password", "user_name", "role", "bio", "profile_picture", "stripe_customer_id", "subscription_price", "enable", "subscription_enable", "comments_enable", "message_enable", "email_verified_at", "siret"}).
+		AddRow(userID, createdAt, createdAt, nil, "user1@example.com", "hashedpassword1", "User1", "USER", "Bio 1", "profile.jpg", "", 0, true, false, true, true, nil, "")
+
+	mock.ExpectQuery("SELECT").WillReturnRows(rows)
 
 	r := testutils.SetupTestRouter()
-	r.GET("/users/:id", GetUserByID)
+	r.GET("/users/profile", func(c *gin.Context) {
+		c.Set("user_id", userID)
+		GetUserProfile(c)
+	})
 
-	req, _ := http.NewRequest(http.MethodGet, "/users/user-uuid-1", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/users/profile", nil)
 	resp := httptest.NewRecorder()
 
 	r.ServeHTTP(resp, req)
@@ -107,28 +111,32 @@ func TestGetUserByID_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 
 	var response map[string]models.User
-	err := json.Unmarshal(resp.Body.Bytes(), &response)
-	assert.NoError(t, err, "Erreur lors de la désérialisation de la réponse JSON: %s", resp.Body.String())
+	json.Unmarshal(resp.Body.Bytes(), &response)
 
 	user := response["user"]
+	assert.Equal(t, userID, user.ID)
 	assert.Equal(t, "user1@example.com", user.Email)
 	assert.Equal(t, "User1", user.UserName)
-
+	assert.Equal(t, "Bio 1", user.Bio)
+	assert.Equal(t, "profile.jpg", user.ProfilePicture)
 	assert.Empty(t, user.Password)
 }
 
-func TestGetUserByID_UserNotFound(t *testing.T) {
+func TestGetUserProfile_UserNotFound(t *testing.T) {
 	_, mock, cleanup := testutils.SetupTestDB(t)
 	defer cleanup()
 
-	mock.ExpectQuery(`SELECT \* FROM "users" WHERE id = \$1 ORDER BY "users"."id" LIMIT \$2`).
-		WithArgs("nonexistent-uuid", 1).
-		WillReturnError(gorm.ErrRecordNotFound)
+	userID := "non-existent-user-id"
+
+	mock.ExpectQuery("SELECT").WillReturnError(gorm.ErrRecordNotFound)
 
 	r := testutils.SetupTestRouter()
-	r.GET("/users/:id", GetUserByID)
+	r.GET("/users/profile", func(c *gin.Context) {
+		c.Set("user_id", userID)
+		GetUserProfile(c)
+	})
 
-	req, _ := http.NewRequest(http.MethodGet, "/users/nonexistent-uuid", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/users/profile", nil)
 	resp := httptest.NewRecorder()
 
 	r.ServeHTTP(resp, req)
@@ -136,7 +144,6 @@ func TestGetUserByID_UserNotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, resp.Code)
 
 	var respBody map[string]string
-	err := json.Unmarshal(resp.Body.Bytes(), &respBody)
-	assert.NoError(t, err, "Erreur lors de la désérialisation de la réponse JSON: %s", resp.Body.String())
-	assert.Equal(t, "Utilisateur non trouvé", respBody["error"])
+	json.Unmarshal(resp.Body.Bytes(), &respBody)
+	assert.Contains(t, respBody["error"], "User not found")
 }
