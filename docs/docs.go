@@ -378,9 +378,9 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update the current authenticated user's profile information",
+                "description": "Update the current authenticated user's profile information with optional profile picture",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -391,13 +391,28 @@ const docTemplate = `{
                 "summary": "Update user profile",
                 "parameters": [
                     {
-                        "description": "Profile update information",
-                        "name": "profile",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/users.UserUpdate"
-                        }
+                        "type": "string",
+                        "description": "Username",
+                        "name": "username",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Biography",
+                        "name": "bio",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Email address",
+                        "name": "email",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Profile picture image file",
+                        "name": "profilePicture",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -658,35 +673,6 @@ const docTemplate = `{
                     "type": "string",
                     "minLength": 6,
                     "example": "Motdepasse123"
-                }
-            }
-        },
-        "users.UserUpdate": {
-            "type": "object",
-            "properties": {
-                "bio": {
-                    "type": "string",
-                    "example": "Développeur passionné de nouvelles technologies"
-                },
-                "commentsEnable": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "messageEnable": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "profilePicture": {
-                    "type": "string",
-                    "example": "https://example.com/images/profile.jpg"
-                },
-                "subscriptionEnable": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "username": {
-                    "type": "string",
-                    "example": "jean_dupont"
                 }
             }
         }

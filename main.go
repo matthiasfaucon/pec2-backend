@@ -6,6 +6,7 @@ import (
 	"pec2-backend/db"
 	_ "pec2-backend/docs"
 	"pec2-backend/routes"
+	"pec2-backend/utils"
 
 	"time"
 
@@ -25,7 +26,14 @@ import (
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 
+	// Initialiser la base de données
 	db.InitDB()
+
+	// Initialiser Cloudinary
+	if err := utils.InitCloudinary(); err != nil {
+		log.Printf("Avertissement: Initialisation de Cloudinary a échoué: %v", err)
+		log.Println("Le téléchargement d'images ne fonctionnera pas correctement.")
+	}
 
 	r := routes.SetupRouter()
 	r.Use(cors.New(cors.Config{

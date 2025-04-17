@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"pec2-backend/db"
 	"pec2-backend/models"
+	"pec2-backend/utils"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -122,21 +123,15 @@ func UpdatePassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
 }
 
-type UserUpdate struct {
-	UserName           string `json:"username" example:"jean_dupont"`
-	Bio                string `json:"bio" example:"Développeur passionné de nouvelles technologies"`
-	ProfilePicture     string `json:"profilePicture" example:"https://example.com/images/profile.jpg"`
-	SubscriptionEnable bool   `json:"subscriptionEnable" example:"true"`
-	CommentsEnable     bool   `json:"commentsEnable" example:"true"`
-	MessageEnable      bool   `json:"messageEnable" example:"true"`
-}
-
 // @Summary Update user profile
-// @Description Update the current authenticated user's profile information
+// @Description Update the current authenticated user's profile information with optional profile picture
 // @Tags users
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param profile body UserUpdate true "Profile update information"
+// @Param username formData string false "Username"
+// @Param bio formData string false "Biography"
+// @Param email formData string false "Email address"
+// @Param profilePicture formData file false "Profile picture image file"
 // @Security BearerAuth
 // @Success 200 {object} map[string]interface{} "message: Profile updated successfully, user: updated user object"
 // @Failure 400 {object} map[string]string "error: Invalid request data"
@@ -157,18 +152,35 @@ func UpdateUserProfile(c *gin.Context) {
 		return
 	}
 
-	var updateData UserUpdate
-	if err := c.ShouldBindJSON(&updateData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data: " + err.Error()})
+	var formData models.UserUpdateFormData
+	if err := c.ShouldBind(&formData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form data: " + err.Error()})
 		return
 	}
 
-	user.UserName = updateData.UserName
-	user.Bio = updateData.Bio
-	user.ProfilePicture = updateData.ProfilePicture
-	user.SubscriptionEnable = updateData.SubscriptionEnable
-	user.CommentsEnable = updateData.CommentsEnable
-	user.MessageEnable = updateData.MessageEnable
+	if formData.UserName != "" {
+		user.UserName = formData.UserName
+	}
+	if formData.Bio != "" {
+		user.Bio = formData.Bio
+	}
+	if formData.Email != "" {
+		if !utils.ValidateEmail(formData.Email) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
+			return
+		}
+		user.Email = formData.Email
+	}
+
+	file, err := c.FormFile("profilePicture")
+	if err == nil && file != nil {
+		imageURL, err := utils.UploadProfilePicture(file)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading profile picture: " + err.Error()})
+			return
+		}
+		user.ProfilePicture = imageURL
+	}
 
 	if result := db.DB.Save(&user); result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating profile: " + result.Error.Error()})
