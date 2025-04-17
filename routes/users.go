@@ -20,5 +20,6 @@ func UsersRoutes(r *gin.Engine) {
 
 		// Routes accessibles à tout utilisateur authentifié
 		userRoutes.PUT("/password", users.UpdatePassword)
+		userRoutes.PUT("/profile", users.UpdateUserProfile)
 	}
 }

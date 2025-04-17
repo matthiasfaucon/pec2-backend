@@ -77,6 +77,30 @@ definitions:
     - email
     - password
     type: object
+  users.UserUpdate:
+    properties:
+      bio:
+        example: Développeur passionné de nouvelles technologies
+        type: string
+      commentsEnable:
+        example: true
+        type: boolean
+      messageEnable:
+        example: true
+        type: boolean
+      profilePicture:
+        example: https://example.com/images/profile.jpg
+        type: string
+      siret:
+        example: "12345678901234"
+        type: string
+      subscriptionEnable:
+        example: true
+        type: boolean
+      username:
+        example: jean_dupont
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -358,6 +382,56 @@ paths:
       security:
       - BearerAuth: []
       summary: Update user password
+      tags:
+      - users
+  /users/profile:
+    put:
+      consumes:
+      - application/json
+      description: Update the current authenticated user's profile information
+      parameters:
+      - description: Profile update information
+        in: body
+        name: profile
+        required: true
+        schema:
+          $ref: '#/definitions/users.UserUpdate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Profile updated successfully, user: updated user
+            object'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: Invalid request data'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: User not found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error updating profile'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update user profile
       tags:
       - users
   /valid-email/{token}:

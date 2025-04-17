@@ -371,6 +371,82 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/profile": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the current authenticated user's profile information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Update user profile",
+                "parameters": [
+                    {
+                        "description": "Profile update information",
+                        "name": "profile",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/users.UserUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Profile updated successfully, user: updated user object",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error: Invalid request data",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: User not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Error updating profile",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/users/{id}": {
             "get": {
                 "description": "Retrieves a user by their ID",
@@ -582,6 +658,39 @@ const docTemplate = `{
                     "type": "string",
                     "minLength": 6,
                     "example": "Motdepasse123"
+                }
+            }
+        },
+        "users.UserUpdate": {
+            "type": "object",
+            "properties": {
+                "bio": {
+                    "type": "string",
+                    "example": "Développeur passionné de nouvelles technologies"
+                },
+                "commentsEnable": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "messageEnable": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "profilePicture": {
+                    "type": "string",
+                    "example": "https://example.com/images/profile.jpg"
+                },
+                "siret": {
+                    "type": "string",
+                    "example": "12345678901234"
+                },
+                "subscriptionEnable": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "username": {
+                    "type": "string",
+                    "example": "jean_dupont"
                 }
             }
         }

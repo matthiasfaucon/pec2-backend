@@ -121,3 +121,74 @@ func UpdatePassword(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
 }
+
+// UserUpdate modèle pour la mise à jour du profil utilisateur
+type UserUpdate struct {
+	UserName           string `json:"username" example:"jean_dupont"`
+	Bio                string `json:"bio" example:"Développeur passionné de nouvelles technologies"`
+	ProfilePicture     string `json:"profilePicture" example:"https://example.com/images/profile.jpg"`
+	Siret              string `json:"siret" example:"12345678901234"`
+	SubscriptionEnable bool   `json:"subscriptionEnable" example:"true"`
+	CommentsEnable     bool   `json:"commentsEnable" example:"true"`
+	MessageEnable      bool   `json:"messageEnable" example:"true"`
+}
+
+// @Summary Update user profile
+// @Description Update the current authenticated user's profile information
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param profile body UserUpdate true "Profile update information"
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "message: Profile updated successfully, user: updated user object"
+// @Failure 400 {object} map[string]string "error: Invalid request data"
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 404 {object} map[string]string "error: User not found"
+// @Failure 500 {object} map[string]string "error: Error updating profile"
+// @Router /users/profile [put]
+func UpdateUserProfile(c *gin.Context) {
+	// Récupérer l'ID utilisateur du JWT
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in token"})
+		return
+	}
+
+	// Charger les informations utilisateur depuis la base de données
+	var user models.User
+	if result := db.DB.Where("id = ?", userID).First(&user); result.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Récupérer et valider les données de mise à jour
+	var updateData UserUpdate
+	if err := c.ShouldBindJSON(&updateData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data: " + err.Error()})
+		return
+	}
+
+	// Mettre à jour les champs modifiables
+	// Note: on n'autorise pas la modification de l'email, du rôle ou du mot de passe ici
+	user.UserName = updateData.UserName
+	user.Bio = updateData.Bio
+	user.ProfilePicture = updateData.ProfilePicture
+	user.Siret = updateData.Siret
+	user.SubscriptionEnable = updateData.SubscriptionEnable
+	user.CommentsEnable = updateData.CommentsEnable
+	user.MessageEnable = updateData.MessageEnable
+
+	// Sauvegarder les modifications
+	if result := db.DB.Save(&user); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating profile: " + result.Error.Error()})
+		return
+	}
+
+	// Ne pas renvoyer le mot de passe dans la réponse
+	user.Password = ""
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Profile updated successfully",
+		"user":    user,
+	})
+}
