@@ -127,7 +127,6 @@ type UserUpdate struct {
 	UserName           string `json:"username" example:"jean_dupont"`
 	Bio                string `json:"bio" example:"Développeur passionné de nouvelles technologies"`
 	ProfilePicture     string `json:"profilePicture" example:"https://example.com/images/profile.jpg"`
-	Siret              string `json:"siret" example:"12345678901234"`
 	SubscriptionEnable bool   `json:"subscriptionEnable" example:"true"`
 	CommentsEnable     bool   `json:"commentsEnable" example:"true"`
 	MessageEnable      bool   `json:"messageEnable" example:"true"`
@@ -173,7 +172,6 @@ func UpdateUserProfile(c *gin.Context) {
 	user.UserName = updateData.UserName
 	user.Bio = updateData.Bio
 	user.ProfilePicture = updateData.ProfilePicture
-	user.Siret = updateData.Siret
 	user.SubscriptionEnable = updateData.SubscriptionEnable
 	user.CommentsEnable = updateData.CommentsEnable
 	user.MessageEnable = updateData.MessageEnable

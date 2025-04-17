@@ -91,9 +91,6 @@ definitions:
       profilePicture:
         example: https://example.com/images/profile.jpg
         type: string
-      siret:
-        example: "12345678901234"
-        type: string
       subscriptionEnable:
         example: true
         type: boolean

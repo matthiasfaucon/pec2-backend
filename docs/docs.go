@@ -680,10 +680,6 @@ const docTemplate = `{
                     "type": "string",
                     "example": "https://example.com/images/profile.jpg"
                 },
-                "siret": {
-                    "type": "string",
-                    "example": "12345678901234"
-                },
                 "subscriptionEnable": {
                     "type": "boolean",
                     "example": true
