@@ -122,7 +122,6 @@ func UpdatePassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
 }
 
-// UserUpdate modèle pour la mise à jour du profil utilisateur
 type UserUpdate struct {
 	UserName           string `json:"username" example:"jean_dupont"`
 	Bio                string `json:"bio" example:"Développeur passionné de nouvelles technologies"`
@@ -146,29 +145,24 @@ type UserUpdate struct {
 // @Failure 500 {object} map[string]string "error: Error updating profile"
 // @Router /users/profile [put]
 func UpdateUserProfile(c *gin.Context) {
-	// Récupérer l'ID utilisateur du JWT
 	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in token"})
 		return
 	}
 
-	// Charger les informations utilisateur depuis la base de données
 	var user models.User
 	if result := db.DB.Where("id = ?", userID).First(&user); result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	// Récupérer et valider les données de mise à jour
 	var updateData UserUpdate
 	if err := c.ShouldBindJSON(&updateData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data: " + err.Error()})
 		return
 	}
 
-	// Mettre à jour les champs modifiables
-	// Note: on n'autorise pas la modification de l'email, du rôle ou du mot de passe ici
 	user.UserName = updateData.UserName
 	user.Bio = updateData.Bio
 	user.ProfilePicture = updateData.ProfilePicture
@@ -176,13 +170,11 @@ func UpdateUserProfile(c *gin.Context) {
 	user.CommentsEnable = updateData.CommentsEnable
 	user.MessageEnable = updateData.MessageEnable
 
-	// Sauvegarder les modifications
 	if result := db.DB.Save(&user); result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating profile: " + result.Error.Error()})
 		return
 	}
 
-	// Ne pas renvoyer le mot de passe dans la réponse
 	user.Password = ""
 
 	c.JSON(http.StatusOK, gin.H{
