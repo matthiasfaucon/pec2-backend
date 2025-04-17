@@ -174,12 +174,19 @@ func UpdateUserProfile(c *gin.Context) {
 
 	file, err := c.FormFile("profilePicture")
 	if err == nil && file != nil {
+		oldImageURL := user.ProfilePicture
+
 		imageURL, err := utils.UploadProfilePicture(file)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading profile picture: " + err.Error()})
 			return
 		}
+
 		user.ProfilePicture = imageURL
+
+		if oldImageURL != "" {
+			_ = utils.DeleteProfilePicture(oldImageURL)
+		}
 	}
 
 	if result := db.DB.Save(&user); result.Error != nil {

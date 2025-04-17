@@ -6,6 +6,7 @@ import (
 	"io"
 	"mime/multipart"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -59,6 +60,49 @@ func isValidImageType(filename string) bool {
 		}
 	}
 	return false
+}
+
+// ExtractPublicIDFromURL extrait l'ID public à partir d'une URL Cloudinary
+func ExtractPublicIDFromURL(url string) string {
+	if url == "" {
+		return ""
+	}
+
+	
+	regex := regexp.MustCompile(`cloudinary\.com/[^/]+/image/upload/(?:v\d+/)?(.+?)(?:\.\w+)?$`)
+	matches := regex.FindStringSubmatch(url)
+
+	if len(matches) > 1 {
+		return matches[1]
+	}
+	return ""
+}
+
+// DeleteProfilePicture supprime une image de profil sur Cloudinary
+func DeleteProfilePicture(imageURL string) error {
+	if imageURL == "" {
+		return nil // Pas d'image à supprimer
+	}
+
+	if cld == nil {
+		if err := InitCloudinary(); err != nil {
+			return err
+		}
+	}
+
+	publicID := ExtractPublicIDFromURL(imageURL)
+	if publicID == "" {
+		return fmt.Errorf("could not extract public ID from URL: %s", imageURL)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, err := cld.Upload.Destroy(ctx, uploader.DestroyParams{
+		PublicID: publicID,
+	})
+
+	return err
 }
 
 // UploadProfilePicture télécharge une image de profil vers Cloudinary
@@ -122,7 +166,7 @@ func UploadProfilePicture(file *multipart.FileHeader) (string, error) {
 			return constructedURL, nil
 		}
 
-			return "", fmt.Errorf("URL sécurisée vide dans la réponse de Cloudinary")
+		return "", fmt.Errorf("URL sécurisée vide dans la réponse de Cloudinary")
 	}
 
 	return uploadResult.SecureURL, nil
