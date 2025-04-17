@@ -7,6 +7,9 @@ import (
 	_ "pec2-backend/docs"
 	"pec2-backend/routes"
 
+	"time"
+
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -25,6 +28,14 @@ func main() {
 	db.InitDB()
 
 	r := routes.SetupRouter()
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"}, // Pour autoriser toutes les origines en dev
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal("Erreur lors du démarrage du serveur:", err)
