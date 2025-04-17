@@ -200,8 +200,5 @@ func GetUserProfile(c *gin.Context) {
 
 	// Ne pas renvoyer le mot de passe
 	user.Password = ""
-
-	c.JSON(http.StatusOK, gin.H{
-		"user": user,
-	})
+	c.JSON(http.StatusOK, user)
 }
