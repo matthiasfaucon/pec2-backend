@@ -269,46 +269,6 @@ paths:
       summary: Get all users (Admin)
       tags:
       - users
-  /users/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves a user by their ID
-      parameters:
-      - description: User ID (UUID)
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 'user: user object'
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: 'error: Invalid user ID'
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: 'error: User not found'
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: 'error: error message'
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Get user by ID
-      tags:
-      - users
   /users/password:
     put:
       consumes:
@@ -361,6 +321,41 @@ paths:
       tags:
       - users
   /users/profile:
+    get:
+      consumes:
+      - application/json
+      description: Get the current authenticated user's profile information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'user: user object'
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: User not found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error retrieving profile'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - users
     put:
       consumes:
       - multipart/form-data

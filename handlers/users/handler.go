@@ -37,36 +37,6 @@ func GetAllUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"users": users})
 }
 
-// @Summary Get user by ID
-// @Description Retrieves a user by their ID
-// @Tags users
-// @Accept json
-// @Produce json
-// @Param id path string true "User ID (UUID)"
-// @Success 200 {object} map[string]interface{} "user: user object"
-// @Failure 400 {object} map[string]string "error: Invalid user ID"
-// @Failure 404 {object} map[string]string "error: User not found"
-// @Failure 500 {object} map[string]string "error: error message"
-// @Router /users/{id} [get]
-func GetUserByID(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID d'utilisateur invalide"})
-		return
-	}
-
-	var user models.User
-	result := db.DB.Where("id = ?", id).First(&user)
-	if result.Error != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Utilisateur non trouvé"})
-		return
-	}
-
-	user.Password = ""
-
-	c.JSON(http.StatusOK, gin.H{"user": user})
-}
-
 // @Summary Update user password
 // @Description Update user's password by verifying the old password and setting a new one
 // @Tags users
@@ -199,5 +169,39 @@ func UpdateUserProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Profile updated successfully",
 		"user":    user,
+	})
+}
+
+// @Summary Get user profile
+// @Description Get the current authenticated user's profile information
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "user: user object"
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 404 {object} map[string]string "error: User not found"
+// @Failure 500 {object} map[string]string "error: Error retrieving profile"
+// @Router /users/profile [get]
+func GetUserProfile(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in token"})
+		return
+	}
+
+	var user models.User
+	// Utiliser exactement la même approche que GetAllUsers qui fonctionne dans les tests
+	result := db.DB.First(&user, "id = ?", userID)
+	if result.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Ne pas renvoyer le mot de passe
+	user.Password = ""
+
+	c.JSON(http.StatusOK, gin.H{
+		"user": user,
 	})
 }

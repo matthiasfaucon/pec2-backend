@@ -10,7 +10,7 @@ import (
 func UsersRoutes(r *gin.Engine) {
 
 	// Route accessible sans authentification
-	r.GET("/users/:id", users.GetUserByID)
+	//r.GET("/users/:id", users.GetUserByID)
 
 	userRoutes := r.Group("/users")
 	userRoutes.Use(middleware.JWTAuth())
@@ -21,5 +21,6 @@ func UsersRoutes(r *gin.Engine) {
 		// Routes accessibles à tout utilisateur authentifié
 		userRoutes.PUT("/password", users.UpdatePassword)
 		userRoutes.PUT("/profile", users.UpdateUserProfile)
+		userRoutes.GET("/profile", users.GetUserProfile)
 	}
 }
