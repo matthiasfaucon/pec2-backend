@@ -452,6 +452,18 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "description": "First name",
+                        "name": "firstName",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Last name",
+                        "name": "lastName",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
                         "description": "Biography",
                         "name": "bio",
                         "in": "formData"

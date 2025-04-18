@@ -411,6 +411,14 @@ paths:
         in: formData
         name: username
         type: string
+      - description: First name
+        in: formData
+        name: firstName
+        type: string
+      - description: Last name
+        in: formData
+        name: lastName
+        type: string
       - description: Biography
         in: formData
         name: bio
