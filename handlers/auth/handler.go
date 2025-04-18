@@ -28,46 +28,46 @@ import (
 // @Failure 500 {object} map[string]interface{} "error: Error message"
 // @Router /register [post]
 func CreateUser(c *gin.Context) {
-	var user models.User
+	var userCreate models.UserCreate
 
-	if err := c.ShouldBindJSON(&user); err != nil {
+	if err := c.ShouldBindJSON(&userCreate); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid input: " + err.Error(),
 		})
 		return
 	}
 
-	if user.Email == "" {
+	if userCreate.Email == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The email cannot be empty",
 		})
 		return
 	}
 
-	if !utils.ValidateEmail(user.Email) {
+	if !utils.ValidateEmail(userCreate.Email) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid email format",
 		})
 		return
 	}
 
-	if user.Password == "" {
+	if userCreate.Password == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The password cannot be empty",
 		})
 		return
 	}
 
-	if len(user.Password) < 6 {
+	if len(userCreate.Password) < 6 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The password must contain at least 6 characters",
 		})
 		return
 	}
 
-	hasLower := strings.ContainsAny(user.Password, "abcdefghijklmnopqrstuvwxyz")
-	hasUpper := strings.ContainsAny(user.Password, "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	hasDigit := strings.ContainsAny(user.Password, "0123456789")
+	hasLower := strings.ContainsAny(userCreate.Password, "abcdefghijklmnopqrstuvwxyz")
+	hasUpper := strings.ContainsAny(userCreate.Password, "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	hasDigit := strings.ContainsAny(userCreate.Password, "0123456789")
 
 	if !hasLower || !hasUpper || !hasDigit {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -76,8 +76,43 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
+	if userCreate.UserName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "The username cannot be empty",
+		})
+		return
+	}
+
+	if userCreate.FirstName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "The first name cannot be empty",
+		})
+		return
+	}
+
+	if userCreate.LastName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "The last name cannot be empty",
+		})
+		return
+	}
+
+	if userCreate.Sexe != models.Male && userCreate.Sexe != models.Female && userCreate.Sexe != models.Other {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "The sexe must be MAN, WOMAN or OTHER",
+		})
+		return
+	}
+
+	if userCreate.BirthDayDate.After(time.Now()) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "The birth date must be in the past",
+		})
+		return
+	}
+
 	var existingUser models.User
-	if err := db.DB.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
+	if err := db.DB.Where("email = ?", userCreate.Email).First(&existingUser).Error; err == nil {
 		c.JSON(http.StatusConflict, gin.H{
 			"error": "This email is already used",
 		})
@@ -89,26 +124,33 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	passwordHash, err := hashPassword(user.Password)
+	passwordHash, err := hashPassword(userCreate.Password)
 
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Error when hashing password"})
 		return
 	}
 
-	user.Password = passwordHash
-	user.Bio = ""
-	user.UserName = ""
-	user.Role = models.UserRole
-	user.ProfilePicture = ""
-	user.StripeCustomerId = ""
-	user.SubscriptionPrice = 0
-	user.Enable = true
-	user.SubscriptionEnable = true
-	user.CommentsEnable = true
-	user.MessageEnable = true
-	user.EmailVerifiedAt = sql.NullTime{Valid: false}
-	user.Siret = ""
+	user := models.User{
+		Email:              userCreate.Email,
+		Password:           passwordHash,
+		UserName:           userCreate.UserName,
+		FirstName:          userCreate.FirstName,
+		LastName:           userCreate.LastName,
+		BirthDayDate:       userCreate.BirthDayDate,
+		Sexe:               userCreate.Sexe,
+		Role:               models.UserRole,
+		Bio:                "",
+		ProfilePicture:     "",
+		StripeCustomerId:   "",
+		SubscriptionPrice:  0,
+		Enable:             true,
+		SubscriptionEnable: true,
+		CommentsEnable:     true,
+		MessageEnable:      true,
+		EmailVerifiedAt:    sql.NullTime{Valid: false},
+		Siret:              "",
+	}
 
 	result := db.DB.Create(&user)
 	if result.Error != nil {
@@ -142,19 +184,26 @@ func CreateUser(c *gin.Context) {
 	})
 }
 
+// LoginRequest model for login
+// @Description model for user login
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required,email" example:"utilisateur@exemple.com"`
+	Password string `json:"password" binding:"required,min=6" example:"Motdepasse123"`
+}
+
 // @Summary user login
 // @Description user login with credential
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param user body models.UserCreate true "User information"
-// @Success 200 {object} map[string]interface{} "message: User created successfully, email: user email"
+// @Param user body LoginRequest true "User credentials"
+// @Success 200 {object} map[string]interface{} "token: JWT token"
 // @Failure 400 {object} map[string]interface{} "error: Invalid input"
 // @Failure 401 {object} map[string]interface{} "error: Wrong credentials or email not verified"
 // @Failure 422 {object} map[string]interface{} "error: JWT not generated"
 // @Router /login [post]
 func Login(c *gin.Context) {
-	var inputLogin models.UserCreate
+	var inputLogin LoginRequest
 
 	if err := c.ShouldBindJSON(&inputLogin); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{

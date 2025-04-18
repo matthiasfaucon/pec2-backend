@@ -140,18 +140,18 @@ const docTemplate = `{
                 "summary": "user login",
                 "parameters": [
                     {
-                        "description": "User information",
+                        "description": "User credentials",
                         "name": "user",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.UserCreate"
+                            "$ref": "#/definitions/auth.LoginRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "message: User created successfully, email: user email",
+                        "description": "token: JWT token",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -565,6 +565,25 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "auth.LoginRequest": {
+            "description": "model for user login",
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "utilisateur@exemple.com"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "example": "Motdepasse123"
+                }
+            }
+        },
         "models.Contact": {
             "description": "Modèle complet d'une demande de contact",
             "type": "object",
@@ -651,22 +670,64 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Sexe": {
+            "type": "string",
+            "enum": [
+                "MAN",
+                "WOMAN",
+                "OTHER"
+            ],
+            "x-enum-varnames": [
+                "Male",
+                "Female",
+                "Other"
+            ]
+        },
         "models.UserCreate": {
             "description": "model for create a user",
             "type": "object",
             "required": [
+                "birthDayDate",
                 "email",
-                "password"
+                "firstName",
+                "lastName",
+                "password",
+                "sexe",
+                "username"
             ],
             "properties": {
+                "birthDayDate": {
+                    "type": "string",
+                    "example": "1990-01-01T00:00:00Z"
+                },
                 "email": {
                     "type": "string",
                     "example": "utilisateur@exemple.com"
+                },
+                "firstName": {
+                    "type": "string",
+                    "example": "Jean"
+                },
+                "lastName": {
+                    "type": "string",
+                    "example": "Dupont"
                 },
                 "password": {
                     "type": "string",
                     "minLength": 6,
                     "example": "Motdepasse123"
+                },
+                "sexe": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Sexe"
+                        }
+                    ],
+                    "example": "MAN"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "utilisateur123"
                 }
             }
         }
