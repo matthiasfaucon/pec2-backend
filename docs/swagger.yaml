@@ -1,5 +1,19 @@
 basePath: /
 definitions:
+  auth.LoginRequest:
+    description: model for user login
+    properties:
+      email:
+        example: utilisateur@exemple.com
+        type: string
+      password:
+        example: Motdepasse123
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
   models.Contact:
     description: Modèle complet d'une demande de contact
     properties:
@@ -63,19 +77,50 @@ definitions:
     - newPassword
     - oldPassword
     type: object
+  models.Sexe:
+    enum:
+    - MAN
+    - WOMAN
+    - OTHER
+    type: string
+    x-enum-varnames:
+    - Male
+    - Female
+    - Other
   models.UserCreate:
     description: model for create a user
     properties:
+      birthDayDate:
+        example: "1990-01-01T00:00:00Z"
+        type: string
       email:
         example: utilisateur@exemple.com
+        type: string
+      firstName:
+        example: Jean
+        type: string
+      lastName:
+        example: Dupont
         type: string
       password:
         example: Motdepasse123
         minLength: 6
         type: string
+      sexe:
+        allOf:
+        - $ref: '#/definitions/models.Sexe'
+        example: MAN
+      username:
+        example: utilisateur123
+        type: string
     required:
+    - birthDayDate
     - email
+    - firstName
+    - lastName
     - password
+    - sexe
+    - username
     type: object
 host: localhost:8080
 info:
@@ -163,17 +208,17 @@ paths:
       - application/json
       description: user login with credential
       parameters:
-      - description: User information
+      - description: User credentials
         in: body
         name: user
         required: true
         schema:
-          $ref: '#/definitions/models.UserCreate'
+          $ref: '#/definitions/auth.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: 'message: User created successfully, email: user email'
+          description: 'token: JWT token'
           schema:
             additionalProperties: true
             type: object
@@ -365,6 +410,14 @@ paths:
       - description: Username
         in: formData
         name: username
+        type: string
+      - description: First name
+        in: formData
+        name: firstName
+        type: string
+      - description: Last name
+        in: formData
+        name: lastName
         type: string
       - description: Biography
         in: formData

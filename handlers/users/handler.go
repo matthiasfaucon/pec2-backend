@@ -34,7 +34,7 @@ func GetAllUsers(c *gin.Context) {
 		users[i].Password = ""
 	}
 
-	c.JSON(http.StatusOK, gin.H{"users": users})
+	c.JSON(http.StatusOK, users)
 }
 
 // @Summary Update user password
@@ -99,6 +99,8 @@ func UpdatePassword(c *gin.Context) {
 // @Accept multipart/form-data
 // @Produce json
 // @Param username formData string false "Username"
+// @Param firstName formData string false "First name"
+// @Param lastName formData string false "Last name"
 // @Param bio formData string false "Biography"
 // @Param email formData string false "Email address"
 // @Param profilePicture formData file false "Profile picture image file"
@@ -141,6 +143,12 @@ func UpdateUserProfile(c *gin.Context) {
 		}
 		user.Email = formData.Email
 	}
+	if formData.FirstName != "" {
+		user.FirstName = formData.FirstName
+	}
+	if formData.LastName != "" {
+		user.LastName = formData.LastName
+	}
 
 	file, err := c.FormFile("profilePicture")
 	if err == nil && file != nil {
@@ -166,10 +174,7 @@ func UpdateUserProfile(c *gin.Context) {
 
 	user.Password = ""
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Profile updated successfully",
-		"user":    user,
-	})
+	c.JSON(http.StatusOK, user)
 }
 
 // @Summary Get user profile
@@ -200,5 +205,6 @@ func GetUserProfile(c *gin.Context) {
 
 	// Ne pas renvoyer le mot de passe
 	user.Password = ""
+
 	c.JSON(http.StatusOK, user)
 }

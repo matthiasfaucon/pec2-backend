@@ -271,12 +271,10 @@ func TestGetAllContacts_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	var respBody map[string][]map[string]interface{}
-	err := json.Unmarshal(resp.Body.Bytes(), &respBody)
+	var contacts []map[string]interface{}
+	err := json.Unmarshal(resp.Body.Bytes(), &contacts)
 	assert.NoError(t, err)
 
-	contacts, ok := respBody["contacts"]
-	assert.True(t, ok, "the key 'contacts' should exist in the response")
 	assert.Equal(t, 2, len(contacts), "there should be 2 contacts in the response")
 
 	if len(contacts) >= 2 {
@@ -307,13 +305,11 @@ func TestGetAllContacts_EmptyList(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	var respBody map[string][]map[string]interface{}
-	err := json.Unmarshal(resp.Body.Bytes(), &respBody)
+	var contacts []map[string]interface{}
+	err := json.Unmarshal(resp.Body.Bytes(), &contacts)
 	assert.NoError(t, err)
 
-	contacts, ok := respBody["contacts"]
-	assert.True(t, ok, "the key 'contacts' should exist in the response")
-	assert.Equal(t, 0, len(contacts))
+	assert.Equal(t, 0, len(contacts), "the contacts list should be empty")
 }
 
 func TestGetAllContacts_DatabaseError(t *testing.T) {

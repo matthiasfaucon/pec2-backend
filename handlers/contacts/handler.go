@@ -80,5 +80,5 @@ func GetAllContacts(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"contacts": contacts})
+	c.JSON(http.StatusOK, contacts)
 }

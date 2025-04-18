@@ -51,9 +51,15 @@ func TestCreateUser_Success(t *testing.T) {
 	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
-	userData := map[string]string{
-		"email":    "test@example.com",
-		"password": "Password123",
+	birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	userData := map[string]interface{}{
+		"email":        "test@example.com",
+		"password":     "Password123",
+		"username":     "testuser",
+		"firstName":    "John",
+		"lastName":     "Doe",
+		"birthDayDate": birthDate,
+		"sexe":         "MAN",
 	}
 	jsonData, _ := json.Marshal(userData)
 
@@ -75,9 +81,15 @@ func TestCreateUser_EmptyEmail(t *testing.T) {
 	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
-	userData := map[string]string{
-		"email":    "",
-		"password": "Password123",
+	birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	userData := map[string]interface{}{
+		"email":        "",
+		"password":     "Password123",
+		"username":     "testuser",
+		"firstName":    "John",
+		"lastName":     "Doe",
+		"birthDayDate": birthDate,
+		"sexe":         "MAN",
 	}
 	jsonData, _ := json.Marshal(userData)
 
@@ -98,9 +110,15 @@ func TestCreateUser_InvalidEmailFormat(t *testing.T) {
 	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
-	userData := map[string]string{
-		"email":    "invalid-email",
-		"password": "Password123",
+	birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	userData := map[string]interface{}{
+		"email":        "invalid-email",
+		"password":     "Password123",
+		"username":     "testuser",
+		"firstName":    "John",
+		"lastName":     "Doe",
+		"birthDayDate": birthDate,
+		"sexe":         "MAN",
 	}
 	jsonData, _ := json.Marshal(userData)
 
@@ -118,14 +136,18 @@ func TestCreateUser_InvalidEmailFormat(t *testing.T) {
 }
 
 func TestCreateUser_EmptyPassword(t *testing.T) {
-	// Configuration du routeur
 	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
-	// Données avec mot de passe vide
-	userData := map[string]string{
-		"email":    "test@example.com",
-		"password": "",
+	birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	userData := map[string]interface{}{
+		"email":        "test@example.com",
+		"password":     "",
+		"username":     "testuser",
+		"firstName":    "John",
+		"lastName":     "Doe",
+		"birthDayDate": birthDate,
+		"sexe":         "MAN",
 	}
 	jsonData, _ := json.Marshal(userData)
 
@@ -146,9 +168,15 @@ func TestCreateUser_ShortPassword(t *testing.T) {
 	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
-	userData := map[string]string{
-		"email":    "test@example.com",
-		"password": "Abc1",
+	birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	userData := map[string]interface{}{
+		"email":        "test@example.com",
+		"password":     "Abc1",
+		"username":     "testuser",
+		"firstName":    "John",
+		"lastName":     "Doe",
+		"birthDayDate": birthDate,
+		"sexe":         "MAN",
 	}
 	jsonData, _ := json.Marshal(userData)
 
@@ -189,9 +217,15 @@ func TestCreateUser_WeakPassword(t *testing.T) {
 			r := testutils.SetupTestRouter()
 			r.POST("/user", CreateUser)
 
-			userData := map[string]string{
-				"email":    "test@example.com",
-				"password": tc.password,
+			birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+			userData := map[string]interface{}{
+				"email":        "test@example.com",
+				"password":     tc.password,
+				"username":     "testuser",
+				"firstName":    "John",
+				"lastName":     "Doe",
+				"birthDayDate": birthDate,
+				"sexe":         "MAN",
 			}
 			jsonData, _ := json.Marshal(userData)
 
@@ -221,9 +255,15 @@ func TestCreateUser_EmailAlreadyExists(t *testing.T) {
 	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
-	userData := map[string]string{
-		"email":    "existing@example.com",
-		"password": "Password123",
+	birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	userData := map[string]interface{}{
+		"email":        "existing@example.com",
+		"password":     "Password123",
+		"username":     "testuser",
+		"firstName":    "John",
+		"lastName":     "Doe",
+		"birthDayDate": birthDate,
+		"sexe":         "MAN",
 	}
 	jsonData, _ := json.Marshal(userData)
 
@@ -256,9 +296,15 @@ func TestCreateUser_DatabaseError(t *testing.T) {
 	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
-	userData := map[string]string{
-		"email":    "test@example.com",
-		"password": "Password123",
+	birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	userData := map[string]interface{}{
+		"email":        "test@example.com",
+		"password":     "Password123",
+		"username":     "testuser",
+		"firstName":    "John",
+		"lastName":     "Doe",
+		"birthDayDate": birthDate,
+		"sexe":         "MAN",
 	}
 	jsonData, _ := json.Marshal(userData)
 
@@ -530,4 +576,120 @@ func TestValidEmail_InvalidToken(t *testing.T) {
 	var respBody map[string]string
 	json.Unmarshal(resp.Body.Bytes(), &respBody)
 	assert.Equal(t, "can't decode JWT", respBody["error"])
+}
+
+func TestCreateUser_MissingFields(t *testing.T) {
+	testCases := []struct {
+		name          string
+		userData      map[string]interface{}
+		expectedError string
+	}{
+		{
+			name: "MissingUsername",
+			userData: map[string]interface{}{
+				"email":        "test@example.com",
+				"password":     "Password123",
+				"firstName":    "John",
+				"lastName":     "Doe",
+				"birthDayDate": time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+				"sexe":         "MAN",
+			},
+			expectedError: "'UserCreate.UserName'",
+		},
+		{
+			name: "MissingFirstName",
+			userData: map[string]interface{}{
+				"email":        "test@example.com",
+				"password":     "Password123",
+				"username":     "testuser",
+				"lastName":     "Doe",
+				"birthDayDate": time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+				"sexe":         "MAN",
+			},
+			expectedError: "'UserCreate.FirstName'",
+		},
+		{
+			name: "MissingLastName",
+			userData: map[string]interface{}{
+				"email":        "test@example.com",
+				"password":     "Password123",
+				"username":     "testuser",
+				"firstName":    "John",
+				"birthDayDate": time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+				"sexe":         "MAN",
+			},
+			expectedError: "'UserCreate.LastName'",
+		},
+		{
+			name: "MissingBirthDayDate",
+			userData: map[string]interface{}{
+				"email":     "test@example.com",
+				"password":  "Password123",
+				"username":  "testuser",
+				"firstName": "John",
+				"lastName":  "Doe",
+				"sexe":      "MAN",
+			},
+			expectedError: "'UserCreate.BirthDayDate'",
+		},
+		{
+			name: "MissingSexe",
+			userData: map[string]interface{}{
+				"email":        "test@example.com",
+				"password":     "Password123",
+				"username":     "testuser",
+				"firstName":    "John",
+				"lastName":     "Doe",
+				"birthDayDate": time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			expectedError: "'UserCreate.Sexe'",
+		},
+		{
+			name: "InvalidSexe",
+			userData: map[string]interface{}{
+				"email":        "test@example.com",
+				"password":     "Password123",
+				"username":     "testuser",
+				"firstName":    "John",
+				"lastName":     "Doe",
+				"birthDayDate": time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+				"sexe":         "INVALID",
+			},
+			expectedError: "The sexe must be MAN, WOMAN or OTHER",
+		},
+		{
+			name: "FutureBirthDate",
+			userData: map[string]interface{}{
+				"email":        "test@example.com",
+				"password":     "Password123",
+				"username":     "testuser",
+				"firstName":    "John",
+				"lastName":     "Doe",
+				"birthDayDate": time.Now().AddDate(1, 0, 0),
+				"sexe":         "MAN",
+			},
+			expectedError: "The birth date must be in the past",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := testutils.SetupTestRouter()
+			r.POST("/user", CreateUser)
+
+			jsonData, _ := json.Marshal(tc.userData)
+
+			req, _ := http.NewRequest(http.MethodPost, "/user", bytes.NewBuffer(jsonData))
+			req.Header.Set("Content-Type", "application/json")
+			resp := httptest.NewRecorder()
+
+			r.ServeHTTP(resp, req)
+
+			assert.Equal(t, http.StatusBadRequest, resp.Code)
+
+			var respBody map[string]string
+			json.Unmarshal(resp.Body.Bytes(), &respBody)
+			assert.Contains(t, respBody["error"], tc.expectedError)
+		})
+	}
 }
