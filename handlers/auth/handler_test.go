@@ -81,9 +81,15 @@ func TestCreateUser_EmptyEmail(t *testing.T) {
 	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
-	userData := map[string]string{
-		"email":    "",
-		"password": "Password123",
+	birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	userData := map[string]interface{}{
+		"email":        "",
+		"password":     "Password123",
+		"username":     "testuser",
+		"firstName":    "John",
+		"lastName":     "Doe",
+		"birthDayDate": birthDate,
+		"sexe":         "MAN",
 	}
 	jsonData, _ := json.Marshal(userData)
 
@@ -104,9 +110,15 @@ func TestCreateUser_InvalidEmailFormat(t *testing.T) {
 	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
-	userData := map[string]string{
-		"email":    "invalid-email",
-		"password": "Password123",
+	birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	userData := map[string]interface{}{
+		"email":        "invalid-email",
+		"password":     "Password123",
+		"username":     "testuser",
+		"firstName":    "John",
+		"lastName":     "Doe",
+		"birthDayDate": birthDate,
+		"sexe":         "MAN",
 	}
 	jsonData, _ := json.Marshal(userData)
 
@@ -124,14 +136,18 @@ func TestCreateUser_InvalidEmailFormat(t *testing.T) {
 }
 
 func TestCreateUser_EmptyPassword(t *testing.T) {
-	// Configuration du routeur
 	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
-	// Données avec mot de passe vide
-	userData := map[string]string{
-		"email":    "test@example.com",
-		"password": "",
+	birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	userData := map[string]interface{}{
+		"email":        "test@example.com",
+		"password":     "",
+		"username":     "testuser",
+		"firstName":    "John",
+		"lastName":     "Doe",
+		"birthDayDate": birthDate,
+		"sexe":         "MAN",
 	}
 	jsonData, _ := json.Marshal(userData)
 
@@ -152,9 +168,15 @@ func TestCreateUser_ShortPassword(t *testing.T) {
 	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
-	userData := map[string]string{
-		"email":    "test@example.com",
-		"password": "Abc1",
+	birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	userData := map[string]interface{}{
+		"email":        "test@example.com",
+		"password":     "Abc1",
+		"username":     "testuser",
+		"firstName":    "John",
+		"lastName":     "Doe",
+		"birthDayDate": birthDate,
+		"sexe":         "MAN",
 	}
 	jsonData, _ := json.Marshal(userData)
 
@@ -195,9 +217,15 @@ func TestCreateUser_WeakPassword(t *testing.T) {
 			r := testutils.SetupTestRouter()
 			r.POST("/user", CreateUser)
 
-			userData := map[string]string{
-				"email":    "test@example.com",
-				"password": tc.password,
+			birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+			userData := map[string]interface{}{
+				"email":        "test@example.com",
+				"password":     tc.password,
+				"username":     "testuser",
+				"firstName":    "John",
+				"lastName":     "Doe",
+				"birthDayDate": birthDate,
+				"sexe":         "MAN",
 			}
 			jsonData, _ := json.Marshal(userData)
 
@@ -227,9 +255,15 @@ func TestCreateUser_EmailAlreadyExists(t *testing.T) {
 	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
-	userData := map[string]string{
-		"email":    "existing@example.com",
-		"password": "Password123",
+	birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	userData := map[string]interface{}{
+		"email":        "existing@example.com",
+		"password":     "Password123",
+		"username":     "testuser",
+		"firstName":    "John",
+		"lastName":     "Doe",
+		"birthDayDate": birthDate,
+		"sexe":         "MAN",
 	}
 	jsonData, _ := json.Marshal(userData)
 
@@ -262,9 +296,15 @@ func TestCreateUser_DatabaseError(t *testing.T) {
 	r := testutils.SetupTestRouter()
 	r.POST("/user", CreateUser)
 
-	userData := map[string]string{
-		"email":    "test@example.com",
-		"password": "Password123",
+	birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	userData := map[string]interface{}{
+		"email":        "test@example.com",
+		"password":     "Password123",
+		"username":     "testuser",
+		"firstName":    "John",
+		"lastName":     "Doe",
+		"birthDayDate": birthDate,
+		"sexe":         "MAN",
 	}
 	jsonData, _ := json.Marshal(userData)
 

@@ -53,10 +53,9 @@ func TestGetAllUsers_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	var response map[string][]models.User
-	json.Unmarshal(resp.Body.Bytes(), &response)
+	var users []models.User
+	json.Unmarshal(resp.Body.Bytes(), &users)
 
-	users := response["users"]
 	assert.Len(t, users, 2)
 	assert.Equal(t, "user1@example.com", users[0].Email)
 	assert.Equal(t, "user2@example.com", users[1].Email)
@@ -119,10 +118,9 @@ func TestGetUserProfile_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	var response map[string]models.User
-	json.Unmarshal(resp.Body.Bytes(), &response)
+	var user models.User
+	json.Unmarshal(resp.Body.Bytes(), &user)
 
-	user := response["user"]
 	assert.Equal(t, userID, user.ID)
 	assert.Equal(t, "user1@example.com", user.Email)
 	assert.Equal(t, "User1", user.UserName)
