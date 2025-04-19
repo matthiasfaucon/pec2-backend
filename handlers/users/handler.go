@@ -68,6 +68,12 @@ func UpdatePassword(c *gin.Context) {
 		return
 	}
 
+	// Vérifie si le nouveau mot de passe est identique à l'ancien
+	if passwordUpdate.OldPassword == passwordUpdate.NewPassword {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "The new password must be different from the old password"})
+		return
+	}
+
 	var user models.User
 	if result := db.DB.Where("id = ?", userID).First(&user); result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})

@@ -1,6 +1,7 @@
 package users
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"log"
@@ -157,4 +158,41 @@ func TestGetUserProfile_UserNotFound(t *testing.T) {
 	var respBody map[string]string
 	json.Unmarshal(resp.Body.Bytes(), &respBody)
 	assert.Contains(t, respBody["error"], "User not found")
+}
+
+func TestUpdatePassword_SamePassword(t *testing.T) {
+	_, mock, cleanup := testutils.SetupTestDB(t)
+	defer cleanup()
+
+	userID := "user-uuid-1"
+
+	// Mock de la requête pour récupérer l'utilisateur
+	mock.ExpectQuery(`SELECT \* FROM "users" WHERE id = (.+) ORDER BY "users"."id" LIMIT (.+)`).
+		WithArgs(userID).
+		WillReturnRows(mock.NewRows([]string{"id", "email", "password"}).
+			AddRow(userID, "user@example.com", "$2a$10$8b9qfHvbQVnP1IgEyd/AX.X5PCNGO/ZVE13NZS8xg3wDo6f4rWpiW"))
+
+	r := testutils.SetupTestRouter()
+	r.PUT("/users/password", func(c *gin.Context) {
+		c.Set("user_id", userID)
+		UpdatePassword(c)
+	})
+
+	passwordData := map[string]string{
+		"oldPassword": "Test123!",
+		"newPassword": "Test123!", // Même mot de passe
+	}
+	jsonData, _ := json.Marshal(passwordData)
+
+	req, _ := http.NewRequest(http.MethodPut, "/users/password", bytes.NewBuffer(jsonData))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	r.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+
+	var respBody map[string]string
+	json.Unmarshal(resp.Body.Bytes(), &respBody)
+	assert.Equal(t, "The new password must be different from the old password", respBody["error"])
 }
