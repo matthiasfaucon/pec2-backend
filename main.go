@@ -8,9 +8,6 @@ import (
 	"pec2-backend/routes"
 	"pec2-backend/utils"
 
-	"time"
-
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,6 +21,7 @@ import (
 // @name Authorization
 // @description Entrez le JWT avec le préfixe Bearer: Bearer <JWT>
 func main() {
+	
 	gin.SetMode(gin.ReleaseMode)
 
 	// Initialiser la base de données
@@ -36,14 +34,7 @@ func main() {
 	}
 
 	r := routes.SetupRouter()
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"}, // Pour autoriser toutes les origines en dev
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
+
 
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal("Erreur lors du démarrage du serveur:", err)
