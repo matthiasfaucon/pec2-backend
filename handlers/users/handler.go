@@ -242,14 +242,12 @@ type UserStatsResponse struct {
 // @Failure 500 {object} map[string]string "error: Error retrieving statistics"
 // @Router /users/statistics [get]
 func GetUserStatistics(c *gin.Context) {
-	// Récupérer les paramètres de filtre
 	filter := c.Query("filter")
 	if filter != "month" && filter != "year" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Filter must be 'month' or 'year'"})
 		return
 	}
 
-	// Année par défaut = année en cours
 	currentYear := time.Now().Year()
 	yearStr := c.DefaultQuery("year", strconv.Itoa(currentYear))
 	year, err := strconv.Atoi(yearStr)
@@ -261,7 +259,6 @@ func GetUserStatistics(c *gin.Context) {
 	var stats []UserStatsResponse
 
 	if filter == "month" {
-		// Si filtre par mois, vérifier si un mois spécifique est fourni
 		monthStr := c.Query("month")
 		if monthStr != "" {
 			month, err := strconv.Atoi(monthStr)
@@ -270,14 +267,12 @@ func GetUserStatistics(c *gin.Context) {
 				return
 			}
 
-			// Compter les utilisateurs pour un mois spécifique par jour
 			stats, err = getUserCountByDay(year, month)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving daily statistics: " + err.Error()})
 				return
 			}
 		} else {
-			// Compter les utilisateurs pour toute l'année, groupés par mois
 			stats, err = getUserCountByMonth(year)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving monthly statistics: " + err.Error()})
@@ -285,7 +280,6 @@ func GetUserStatistics(c *gin.Context) {
 			}
 		}
 	} else {
-		// Compter les utilisateurs par année
 		stats, err = getUserCountByYear(year)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving yearly statistics: " + err.Error()})
@@ -296,7 +290,6 @@ func GetUserStatistics(c *gin.Context) {
 	c.JSON(http.StatusOK, stats)
 }
 
-// Obtenir le nombre d'utilisateurs par jour pour un mois spécifique
 func getUserCountByDay(year, month int) ([]UserStatsResponse, error) {
 	daysInMonth := 31
 	if month == 4 || month == 6 || month == 9 || month == 11 {
@@ -391,18 +384,14 @@ func getUserCountByYear(targetYear int) ([]UserStatsResponse, error) {
 	startYear := oldestUser.CreatedAt.Year()
 	currentYear := time.Now().Year()
 
-	// Si une année spécifique est demandée
 	if targetYear > 0 {
-		// Si l'année demandée est future, retourner vide
 		if targetYear > currentYear {
 			return []UserStatsResponse{}, nil
 		}
-		// Si l'année demandée est antérieure à la plus ancienne, retourner vide
 		if targetYear < startYear {
 			return []UserStatsResponse{}, nil
 		}
 
-		// Calculer pour l'année spécifique uniquement
 		startDate := time.Date(targetYear, 1, 1, 0, 0, 0, 0, time.UTC)
 		endDate := time.Date(targetYear+1, 1, 1, 0, 0, 0, 0, time.UTC)
 
