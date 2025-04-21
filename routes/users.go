@@ -15,8 +15,9 @@ func UsersRoutes(r *gin.Engine) {
 	userRoutes := r.Group("/users")
 	userRoutes.Use(middleware.JWTAuth())
 	{
-		// Route accessible uniquement aux administrateurs
+		// Routes accessibles uniquement aux administrateurs
 		userRoutes.GET("", middleware.AdminAuth(), users.GetAllUsers)
+		userRoutes.GET("/statistics", middleware.AdminAuth(), users.GetUserStatistics)
 
 		// Routes accessibles à tout utilisateur authentifié
 		userRoutes.PUT("/password", users.UpdatePassword)
