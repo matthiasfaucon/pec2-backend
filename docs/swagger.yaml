@@ -122,6 +122,15 @@ definitions:
     - sexe
     - username
     type: object
+  users.UserStatsResponse:
+    properties:
+      count:
+        type: integer
+      label:
+        type: string
+      period:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -467,6 +476,57 @@ paths:
       security:
       - BearerAuth: []
       summary: Update user profile
+      tags:
+      - users
+  /users/statistics:
+    get:
+      consumes:
+      - application/json
+      description: Get count of users by month or year
+      parameters:
+      - description: 'Filter type: ''month'' or ''year'''
+        in: query
+        name: filter
+        required: true
+        type: string
+      - description: Year to filter by (default is current year)
+        in: query
+        name: year
+        type: integer
+      - description: Month to filter by (1-12, only used with 'month' filter)
+        in: query
+        name: month
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/users.UserStatsResponse'
+            type: array
+        "400":
+          description: 'error: Invalid filter parameter'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error retrieving statistics'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user statistics
       tags:
       - users
   /valid-email/{token}:
