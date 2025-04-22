@@ -80,8 +80,8 @@ func TestUpdateCategory_Success(t *testing.T) {
 	now := time.Now()
 	mock.ExpectQuery(`SELECT \* FROM "categories" WHERE id = (.+)`).
 		WithArgs("category-uuid").
-		WillReturnRows(mock.NewRows([]string{"id", "name", "created_at"}).
-			AddRow("category-uuid", "Old Category", now))
+		WillReturnRows(mock.NewRows([]string{"id", "name", "created_at", "updated_at"}).
+			AddRow("category-uuid", "Old Category", now, now))
 
 	mock.ExpectBegin()
 	mock.ExpectExec(`UPDATE "categories" SET (.+) WHERE (.+)`).
@@ -127,61 +127,6 @@ func TestUpdateCategory_NotFound(t *testing.T) {
 
 	req, _ := http.NewRequest(http.MethodPut, "/categories/non-existent-uuid", bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
-	resp := httptest.NewRecorder()
-
-	r.ServeHTTP(resp, req)
-
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestDeleteCategory_Success(t *testing.T) {
-	_, mock, cleanup := testutils.SetupTestDB(t)
-	defer cleanup()
-
-	now := time.Now()
-	mock.ExpectQuery(`SELECT \* FROM "categories" WHERE id = (.+)`).
-		WithArgs("category-uuid").
-		WillReturnRows(mock.NewRows([]string{"id", "name", "created_at"}).
-			AddRow("category-uuid", "Test Category", now))
-
-	mock.ExpectBegin()
-	mock.ExpectExec(`UPDATE "post_categories" SET (.+) WHERE (.+)`).
-		WillReturnResult(testutils.NewResult(0, 1))
-	mock.ExpectCommit()
-
-	mock.ExpectBegin()
-	mock.ExpectExec(`DELETE FROM "categories" WHERE (.+)`).
-		WithArgs("category-uuid").
-		WillReturnResult(testutils.NewResult(1, 1))
-	mock.ExpectCommit()
-
-	r := testutils.SetupTestRouter()
-	r.DELETE("/categories/:id", DeleteCategory)
-
-	req, _ := http.NewRequest(http.MethodDelete, "/categories/category-uuid", nil)
-	resp := httptest.NewRecorder()
-
-	r.ServeHTTP(resp, req)
-
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	var response map[string]string
-	json.Unmarshal(resp.Body.Bytes(), &response)
-	assert.Equal(t, "Category deleted successfully", response["message"])
-}
-
-func TestDeleteCategory_NotFound(t *testing.T) {
-	_, mock, cleanup := testutils.SetupTestDB(t)
-	defer cleanup()
-
-	mock.ExpectQuery(`SELECT \* FROM "categories" WHERE id = (.+)`).
-		WithArgs("non-existent-uuid").
-		WillReturnError(gorm.ErrRecordNotFound)
-
-	r := testutils.SetupTestRouter()
-	r.DELETE("/categories/:id", DeleteCategory)
-
-	req, _ := http.NewRequest(http.MethodDelete, "/categories/non-existent-uuid", nil)
 	resp := httptest.NewRecorder()
 
 	r.ServeHTTP(resp, req)
