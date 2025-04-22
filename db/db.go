@@ -31,7 +31,11 @@ func InitDB() {
 		panic("Could not connect to the database")
 	}
 
-	err = DB.AutoMigrate(&models.User{}, &models.Contact{})
+	err = DB.AutoMigrate(
+		&models.User{},
+		&models.Contact{},
+		&models.Category{},
+	)
 	if err != nil {
 		fmt.Println("Error migrating database:", err)
 		panic("Could not migrate database")
