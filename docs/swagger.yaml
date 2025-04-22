@@ -22,6 +22,10 @@ definitions:
         type: string
       name:
         type: string
+      posts:
+        items:
+          $ref: '#/definitions/models.Post'
+        type: array
       updatedAt:
         type: string
     required:
@@ -96,6 +100,33 @@ definitions:
     required:
     - newPassword
     - oldPassword
+    type: object
+  models.Post:
+    properties:
+      categories:
+        items:
+          $ref: '#/definitions/models.Category'
+        type: array
+      createdAt:
+        type: string
+      deletedAt:
+        type: string
+      enable:
+        type: boolean
+      id:
+        type: string
+      isFree:
+        type: boolean
+      name:
+        type: string
+      pictureUrl:
+        type: string
+      updatedAt:
+        type: string
+      userId:
+        type: string
+    required:
+    - name
     type: object
   models.Sexe:
     enum:
@@ -424,6 +455,231 @@ paths:
       summary: user login
       tags:
       - auth
+  /posts:
+    get:
+      description: Retrieve all posts with optional filtering
+      parameters:
+      - description: Filter by free posts
+        in: query
+        name: isFree
+        type: boolean
+      - description: Filter by category ID
+        in: query
+        name: category
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Post'
+            type: array
+        "500":
+          description: 'error: Error message'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all posts
+      tags:
+      - posts
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new post with the provided information
+      parameters:
+      - description: Post name
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Is the post free
+        in: formData
+        name: isFree
+        type: boolean
+      - collectionFormat: csv
+        description: Category IDs
+        in: formData
+        items:
+          type: string
+        name: categories
+        type: array
+      - description: Post picture
+        in: formData
+        name: picture
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Post'
+        "400":
+          description: 'error: Invalid input'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error message'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new post
+      tags:
+      - posts
+  /posts/{id}:
+    delete:
+      description: Delete a post by its ID
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Post deleted successfully'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Post not found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error message'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a post
+      tags:
+      - posts
+    get:
+      description: Retrieve a post by its ID
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Post'
+        "404":
+          description: 'error: Post not found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error message'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a post by ID
+      tags:
+      - posts
+    put:
+      consumes:
+      - multipart/form-data
+      description: Update a post with the provided information
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Post name
+        in: formData
+        name: name
+        type: string
+      - description: Is the post free
+        in: formData
+        name: isFree
+        type: boolean
+      - description: Is the post enabled
+        in: formData
+        name: enable
+        type: boolean
+      - collectionFormat: csv
+        description: Category IDs
+        in: formData
+        items:
+          type: string
+        name: categories
+        type: array
+      - description: Post picture
+        in: formData
+        name: picture
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Post'
+        "400":
+          description: 'error: Invalid input'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Post not found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error message'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a post
+      tags:
+      - posts
   /register:
     post:
       consumes:
