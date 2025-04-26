@@ -236,7 +236,7 @@ paths:
       tags:
       - contacts
   /contacts/{id}/status:
-    put:
+    patch:
       consumes:
       - application/json
       description: Update the status of a contact request (Admin access only)

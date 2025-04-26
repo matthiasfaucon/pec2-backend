@@ -17,6 +17,6 @@ func ContactsRoutes(r *gin.Engine) {
 	{
 		// Routes accessibles uniquement aux administrateurs
 		contactRoutes.GET("", middleware.AdminAuth(), contacts.GetAllContacts)
-		contactRoutes.PUT("/:id/status", middleware.AdminAuth(), contacts.UpdateContactStatus)
+		contactRoutes.PATCH("/:id/status", middleware.AdminAuth(), contacts.UpdateContactStatus)
 	}
 }

@@ -107,7 +107,7 @@ func GetAllContacts(c *gin.Context) {
 // @Failure 400 {object} map[string]string "error: Invalid input"
 // @Failure 404 {object} map[string]string "error: Contact not found"
 // @Failure 500 {object} map[string]string "error: Error message"
-// @Router /contacts/{id}/status [put]
+// @Router /contacts/{id}/status [patch]
 func UpdateContactStatus(c *gin.Context) {
 	id := c.Param("id")
 	var statusUpdate models.ContactStatusUpdate

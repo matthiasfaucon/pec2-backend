@@ -126,7 +126,7 @@ const docTemplate = `{
             }
         },
         "/contacts/{id}/status": {
-            "put": {
+            "patch": {
                 "security": [
                     {
                         "BearerAuth": []
