@@ -15,7 +15,8 @@ func ContactsRoutes(r *gin.Engine) {
 	contactRoutes := r.Group("/contacts")
 	contactRoutes.Use(middleware.JWTAuth())
 	{
-		// Route accessible uniquement aux administrateurs
+		// Routes accessibles uniquement aux administrateurs
 		contactRoutes.GET("", middleware.AdminAuth(), contacts.GetAllContacts)
+		contactRoutes.PUT("/:id/status", middleware.AdminAuth(), contacts.UpdateContactStatus)
 	}
 }

@@ -125,6 +125,80 @@ const docTemplate = `{
                 }
             }
         },
+        "/contacts/{id}/status": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the status of a contact request (Admin access only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "contacts"
+                ],
+                "summary": "Update contact status (Admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Contact ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status update information",
+                        "name": "statusUpdate",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ContactStatusUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Contact status updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error: Invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: Contact not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
                 "description": "user login with credential",
@@ -701,6 +775,9 @@ const docTemplate = `{
                 "message": {
                     "type": "string"
                 },
+                "status": {
+                    "$ref": "#/definitions/models.StatusType"
+                },
                 "subject": {
                     "type": "string"
                 },
@@ -742,6 +819,23 @@ const docTemplate = `{
                 }
             }
         },
+        "models.ContactStatusUpdate": {
+            "description": "modèle pour mettre à jour le statut d'une demande de contact",
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.StatusType"
+                        }
+                    ],
+                    "example": "processing"
+                }
+            }
+        },
         "models.PasswordUpdate": {
             "description": "modèle pour mettre à jour le mot de passe d'un utilisateur",
             "type": "object",
@@ -772,6 +866,21 @@ const docTemplate = `{
                 "Male",
                 "Female",
                 "Other"
+            ]
+        },
+        "models.StatusType": {
+            "type": "string",
+            "enum": [
+                "open",
+                "processing",
+                "closed",
+                "rejected"
+            ],
+            "x-enum-varnames": [
+                "StatusOpen",
+                "StatusProcessing",
+                "StatusClosed",
+                "StatusRejected"
             ]
         },
         "models.UserCreate": {
