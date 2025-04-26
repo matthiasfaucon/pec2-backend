@@ -5,6 +5,7 @@ import (
 	"pec2-backend/db"
 	"pec2-backend/models"
 	"pec2-backend/utils"
+	mailsmodels "pec2-backend/utils/mails-models"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -53,6 +54,16 @@ func CreateContact(c *gin.Context) {
 		})
 		return
 	}
+
+	// Envoyer l'e-mail de confirmation
+	emailData := mailsmodels.ContactEmailData{
+		FirstName: contact.FirstName,
+		LastName:  contact.LastName,
+		Email:     contact.Email,
+		Subject:   contact.Subject,
+		Message:   contact.Message,
+	}
+	mailsmodels.ContactConfirmation(emailData)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Contact request submitted successfully",
