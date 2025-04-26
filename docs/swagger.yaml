@@ -27,6 +27,8 @@ definitions:
         type: string
       message:
         type: string
+      status:
+        $ref: '#/definitions/models.StatusType'
       subject:
         type: string
       submittedAt:
@@ -63,6 +65,16 @@ definitions:
     - message
     - subject
     type: object
+  models.ContactStatusUpdate:
+    description: modèle pour mettre à jour le statut d'une demande de contact
+    properties:
+      status:
+        allOf:
+        - $ref: '#/definitions/models.StatusType'
+        example: processing
+    required:
+    - status
+    type: object
   models.PasswordUpdate:
     description: modèle pour mettre à jour le mot de passe d'un utilisateur
     properties:
@@ -87,6 +99,18 @@ definitions:
     - Male
     - Female
     - Other
+  models.StatusType:
+    enum:
+    - open
+    - processing
+    - closed
+    - rejected
+    type: string
+    x-enum-varnames:
+    - StatusOpen
+    - StatusProcessing
+    - StatusClosed
+    - StatusRejected
   models.UserCreate:
     description: model for create a user
     properties:
@@ -209,6 +233,54 @@ paths:
       security:
       - BearerAuth: []
       summary: Get all contact requests (Admin)
+      tags:
+      - contacts
+  /contacts/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Update the status of a contact request (Admin access only)
+      parameters:
+      - description: Contact ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status update information
+        in: body
+        name: statusUpdate
+        required: true
+        schema:
+          $ref: '#/definitions/models.ContactStatusUpdate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Contact status updated successfully'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: Invalid input'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Contact not found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error message'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update contact status (Admin)
       tags:
       - contacts
   /login:

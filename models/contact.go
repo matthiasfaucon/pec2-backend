@@ -4,6 +4,16 @@ import (
 	"time"
 )
 
+// StatusType définit les différents statuts possibles pour une demande de contact
+type StatusType string
+
+const (
+	StatusOpen       StatusType = "open"
+	StatusProcessing StatusType = "processing"
+	StatusClosed     StatusType = "closed"
+	StatusRejected   StatusType = "rejected"
+)
+
 // GormModel définit les champs communs pour Swagger
 // @Description Champs communs du modèle Gorm
 type GormModel struct {
@@ -23,6 +33,7 @@ type Contact struct {
 	Email       string     `json:"email" binding:"required,email"`
 	Subject     string     `json:"subject" binding:"required"`
 	Message     string     `json:"message" gorm:"type:text" binding:"required"`
+	Status      StatusType `json:"status" gorm:"type:varchar(20);default:'open'"`
 	SubmittedAt time.Time  `json:"submittedAt" gorm:"column:submitted_at;default:CURRENT_TIMESTAMP"`
 	CreatedAt   time.Time  `json:"createdAt" swaggerignore:"true"`
 	UpdatedAt   time.Time  `json:"updatedAt" swaggerignore:"true"`
@@ -41,4 +52,10 @@ type ContactCreate struct {
 	Email     string `json:"email" binding:"required,email" example:"jean.dupont@exemple.com"`
 	Subject   string `json:"subject" binding:"required" example:"Demande d'information"`
 	Message   string `json:"message" binding:"required" example:"J'aimerais avoir plus d'informations sur vos services."`
+}
+
+// ContactStatusUpdate modèle pour mettre à jour le statut d'une demande de contact
+// @Description modèle pour mettre à jour le statut d'une demande de contact
+type ContactStatusUpdate struct {
+	Status StatusType `json:"status" binding:"required" example:"processing"`
 }
