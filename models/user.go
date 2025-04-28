@@ -24,7 +24,7 @@ type User struct {
 	ID                     string       `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
 	Email                  string       `json:"email" binding:"required,email"`
 	Password               string       `json:"password" binding:"required,min=6"`
-	UserName               string       `json:"username" binding:"required"`
+	UserName               string       `json:"userName" binding:"required"`
 	FirstName              string       `json:"firstName" binding:"required"`
 	LastName               string       `json:"lastName" binding:"required"`
 	BirthDayDate           time.Time    `json:"birthDayDate" binding:"required"`
@@ -55,7 +55,7 @@ func (User) TableName() string {
 type UserCreate struct {
 	Email        string    `json:"email" binding:"required,email" example:"utilisateur@exemple.com"`
 	Password     string    `json:"password" binding:"required,min=6" example:"Motdepasse123"`
-	UserName     string    `json:"username" binding:"required" example:"utilisateur123"`
+	UserName     string    `json:"userName" binding:"required" example:"utilisateur123"`
 	FirstName    string    `json:"firstName" binding:"required" example:"Jean"`
 	LastName     string    `json:"lastName" binding:"required" example:"Dupont"`
 	BirthDayDate time.Time `json:"birthDayDate" binding:"required" example:"1990-01-01T00:00:00Z"`
@@ -69,11 +69,12 @@ type PasswordUpdate struct {
 	NewPassword string `json:"newPassword" binding:"required,min=6" example:"NouveauMotdepasse123"`
 }
 
-
 type UserUpdateFormData struct {
-	UserName  string `form:"username"`
-	Bio       string `form:"bio"`
-	Email     string `form:"email"`
-	FirstName string `form:"firstName"`
-	LastName  string `form:"lastName"`
+	UserName     string    `form:"userName"`
+	Bio          string    `form:"bio"`
+	FirstName    string    `form:"firstName"`
+	Email        string    `form:"email"`
+	LastName     string    `form:"lastName"`
+	BirthDayDate time.Time `form:"birthDayDate"`
+	Sexe         Sexe      `form:"sexe"`
 }

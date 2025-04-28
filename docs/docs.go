@@ -520,8 +520,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Username",
-                        "name": "username",
+                        "description": "UserName",
+                        "name": "userName",
                         "in": "formData"
                     },
                     {
@@ -546,6 +546,18 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Email address",
                         "name": "email",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sexe",
+                        "name": "sexe",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "BirthDayDate",
+                        "name": "birthDayDate",
                         "in": "formData"
                     },
                     {
@@ -893,7 +905,7 @@ const docTemplate = `{
                 "lastName",
                 "password",
                 "sexe",
-                "username"
+                "userName"
             ],
             "properties": {
                 "birthDayDate": {
@@ -925,7 +937,7 @@ const docTemplate = `{
                     ],
                     "example": "MAN"
                 },
-                "username": {
+                "userName": {
                     "type": "string",
                     "example": "utilisateur123"
                 }
