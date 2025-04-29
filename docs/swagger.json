@@ -514,8 +514,8 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Username",
-                        "name": "username",
+                        "description": "UserName",
+                        "name": "userName",
                         "in": "formData"
                     },
                     {
@@ -540,6 +540,18 @@
                         "type": "string",
                         "description": "Email address",
                         "name": "email",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sexe",
+                        "name": "sexe",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "BirthDayDate",
+                        "name": "birthDayDate",
                         "in": "formData"
                     },
                     {
@@ -887,7 +899,7 @@
                 "lastName",
                 "password",
                 "sexe",
-                "username"
+                "userName"
             ],
             "properties": {
                 "birthDayDate": {
@@ -919,7 +931,7 @@
                     ],
                     "example": "MAN"
                 },
-                "username": {
+                "userName": {
                     "type": "string",
                     "example": "utilisateur123"
                 }

@@ -109,11 +109,13 @@ func UpdatePassword(c *gin.Context) {
 // @Tags users
 // @Accept multipart/form-data
 // @Produce json
-// @Param username formData string false "Username"
+// @Param userName formData string false "UserName"
 // @Param firstName formData string false "First name"
 // @Param lastName formData string false "Last name"
 // @Param bio formData string false "Biography"
 // @Param email formData string false "Email address"
+// @Param sexe formData string false "Sexe"
+// @Param birthDayDate formData string false "BirthDayDate"
 // @Param profilePicture formData file false "Profile picture image file"
 // @Security BearerAuth
 // @Success 200 {object} map[string]interface{} "message: Profile updated successfully, user: updated user object"
@@ -154,6 +156,7 @@ func UpdateUserProfile(c *gin.Context) {
 		}
 		user.Email = formData.Email
 	}
+
 	if formData.FirstName != "" {
 		user.FirstName = formData.FirstName
 	}

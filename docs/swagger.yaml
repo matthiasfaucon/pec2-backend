@@ -134,7 +134,7 @@ definitions:
         allOf:
         - $ref: '#/definitions/models.Sexe'
         example: MAN
-      username:
+      userName:
         example: utilisateur123
         type: string
     required:
@@ -144,7 +144,7 @@ definitions:
     - lastName
     - password
     - sexe
-    - username
+    - userName
     type: object
   users.UserStatsResponse:
     properties:
@@ -488,9 +488,9 @@ paths:
       description: Update the current authenticated user's profile information with
         optional profile picture
       parameters:
-      - description: Username
+      - description: UserName
         in: formData
-        name: username
+        name: userName
         type: string
       - description: First name
         in: formData
@@ -507,6 +507,14 @@ paths:
       - description: Email address
         in: formData
         name: email
+        type: string
+      - description: Sexe
+        in: formData
+        name: sexe
+        type: string
+      - description: BirthDayDate
+        in: formData
+        name: birthDayDate
         type: string
       - description: Profile picture image file
         in: formData
