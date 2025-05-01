@@ -97,6 +97,12 @@ func DeleteCategory(c *gin.Context) {
 		return
 	}
 
+	// First, delete all associations in the post_categories table
+	if err := db.DB.Exec("DELETE FROM post_categories WHERE category_id = ?", categoryID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error removing category from posts: " + err.Error()})
+		return
+	}
+
 	result = db.DB.Delete(&category)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error deleting category: " + result.Error.Error()})
