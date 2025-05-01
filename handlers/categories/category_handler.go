@@ -30,6 +30,15 @@ func CreateCategory(c *gin.Context) {
 		return
 	}
 
+	var existingCategory models.Category
+	resultInCategories := db.DB.First(&existingCategory, "name = ?", categoryCreate.Name)
+	if resultInCategories.Error == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Category already exists",
+		})
+		return
+	}
+
 	category := models.Category{
 		Name: categoryCreate.Name,
 	}
