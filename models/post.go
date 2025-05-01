@@ -9,7 +9,7 @@ type Post struct {
 	UserID     string     `json:"userId" gorm:"column:user_id"`
 	Name       string     `json:"name" binding:"required"`
 	PictureURL string     `json:"pictureUrl" gorm:"column:picture_url"`
-	IsFree     bool       `json:"isFree" gorm:"default:true"`
+	IsFree     bool       `json:"isFree" gorm:"default:false"`
 	Enable     bool       `json:"enable" gorm:"default:true"`
 	Categories []Category `json:"categories" gorm:"many2many:post_categories;"`
 	CreatedAt  time.Time  `json:"createdAt"`

@@ -36,7 +36,7 @@ func main() {
 	r := routes.SetupRouter()
 
 
-	if err := r.Run(":8080"); err != nil {
+	if err := r.Run("0.0.0.0:8090"); err != nil {
 		log.Fatal("Error while starting the server:", err)
 	}
 }

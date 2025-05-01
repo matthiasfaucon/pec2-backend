@@ -1,6 +1,7 @@
 package posts
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"pec2-backend/db"
@@ -41,12 +42,25 @@ func CreatePost(c *gin.Context) {
 	}
 
 	isFreeStr := c.Request.FormValue("isFree")
-	isFree := isFreeStr == "true"
-
+	fmt.Printf("Received isFree value: '%s'\n", isFreeStr)
+	var isFree bool
+	switch  isFreeStr {
+	case "true":
+		isFree = true
+	case "false":
+		isFree = false
+	default:
+		isFree = false
+		
+	}
+	
 	categoriesStr := c.Request.FormValue("categories")
 	var categoryIDs []string
 	if categoriesStr != "" {
-		categoryIDs = strings.Split(categoriesStr, ",")
+		if err := json.Unmarshal([]byte(categoriesStr), &categoryIDs); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid categories format: " + err.Error()})
+			return
+		}
 	}
 
 	post := models.Post{
@@ -56,6 +70,8 @@ func CreatePost(c *gin.Context) {
 		Enable: true,
 	}
 
+	fmt.Printf("Post object before saving: %+v\n", post)
+
 	file, err := c.FormFile("picture")
 	if err == nil && file != nil {
 		imageURL, err := utils.UploadProfilePicture(file)
@@ -64,6 +80,9 @@ func CreatePost(c *gin.Context) {
 			return
 		}
 		post.PictureURL = imageURL
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Picture is required"})
+		return
 	}
 
 	if len(categoryIDs) > 0 {
@@ -93,7 +112,12 @@ func CreatePost(c *gin.Context) {
 		return
 	}
 
+	// Log the post after it has been retrieved from the database to confirm values
+	fmt.Printf("Post after database retrieval: %+v\n", post)
+
 	c.JSON(http.StatusCreated, post)
+
+	fmt.Printf("Post created successfully: %+v\n", post)
 }
 
 // @Summary Get all posts
