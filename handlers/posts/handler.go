@@ -42,7 +42,6 @@ func CreatePost(c *gin.Context) {
 	}
 
 	isFreeStr := c.Request.FormValue("isFree")
-	fmt.Printf("Received isFree value: '%s'\n", isFreeStr)
 	var isFree bool
 	switch  isFreeStr {
 	case "true":
@@ -70,11 +69,9 @@ func CreatePost(c *gin.Context) {
 		Enable: true,
 	}
 
-	fmt.Printf("Post object before saving: %+v\n", post)
-
 	file, err := c.FormFile("picture")
 	if err == nil && file != nil {
-		imageURL, err := utils.UploadProfilePicture(file)
+		imageURL, err := utils.UploadPostPicture(file)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading picture: " + err.Error()})
 			return
@@ -112,12 +109,7 @@ func CreatePost(c *gin.Context) {
 		return
 	}
 
-	// Log the post after it has been retrieved from the database to confirm values
-	fmt.Printf("Post after database retrieval: %+v\n", post)
-
 	c.JSON(http.StatusCreated, post)
-
-	fmt.Printf("Post created successfully: %+v\n", post)
 }
 
 // @Summary Get all posts
@@ -233,10 +225,10 @@ func UpdatePost(c *gin.Context) {
 	file, err := c.FormFile("picture")
 	if err == nil && file != nil {
 		if post.PictureURL != "" {
-			_ = utils.DeleteProfilePicture(post.PictureURL)
+			_ = utils.DeletePostPicture(post.PictureURL)
 		}
 
-		imageURL, err := utils.UploadProfilePicture(file)
+		imageURL, err := utils.UploadPostPicture(file)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading picture: " + err.Error()})
 			return
@@ -307,7 +299,7 @@ func DeletePost(c *gin.Context) {
 	}
 
 	if post.PictureURL != "" {
-		_ = utils.DeleteProfilePicture(post.PictureURL)
+		_ = utils.DeletePostPicture(post.PictureURL)
 	}
 
 	if err := db.DB.Model(&post).Association("Categories").Clear(); err != nil {

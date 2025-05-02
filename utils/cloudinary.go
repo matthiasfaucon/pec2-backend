@@ -171,3 +171,97 @@ func UploadProfilePicture(file *multipart.FileHeader) (string, error) {
 
 	return uploadResult.SecureURL, nil
 }
+
+func UploadPostPicture(file *multipart.FileHeader) (string, error) {
+	if !isValidImageType(file.Filename) {
+		return "", fmt.Errorf("unsupported image format. Use JPG, PNG, GIF, WEBP, BMP or SVG")
+	}
+
+	if file.Size > 10*1024*1024 {
+		return "", fmt.Errorf("image size too large. Maximum 10MB allowed")
+	}
+
+	if cld == nil {
+		if err := InitCloudinary(); err != nil {
+			return "", err
+		}
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		return "", fmt.Errorf("error opening the file: %v", err)
+	}
+	defer src.Close()
+
+	buffer := make([]byte, 512)
+	_, err = src.Read(buffer)
+	if err != nil && err != io.EOF {
+		return "", fmt.Errorf("error reading the file: %v", err)
+	}
+
+	_, err = src.Seek(0, io.SeekStart)
+	if err != nil {
+		return "", fmt.Errorf("error resetting the file cursor: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	timestamp := time.Now().Unix()
+	publicID := fmt.Sprintf("post_%d", timestamp)
+
+	uploadParams := uploader.UploadParams{
+		Folder:         "post_pictures",
+		PublicID:       publicID,
+		UseFilename:    boolPointer(true),
+		UniqueFilename: boolPointer(true),
+		Overwrite:      boolPointer(true),
+		ResourceType:   "auto",
+	}
+
+	uploadResult, err := cld.Upload.Upload(ctx, src, uploadParams)
+	if err != nil {
+		return "", fmt.Errorf("erreur lors du téléchargement vers Cloudinary: %v", err)
+	}
+
+	if uploadResult.SecureURL == "" {
+		if uploadResult.PublicID != "" {
+			cloudName := os.Getenv("CLOUDINARY_CLOUD_NAME")
+			constructedURL := fmt.Sprintf("https://res.cloudinary.com/%s/image/upload/%s",
+				cloudName, uploadResult.PublicID)
+			return constructedURL, nil
+		}
+
+		return "", fmt.Errorf("URL sécurisée vide dans la réponse de Cloudinary")
+	}
+
+	return uploadResult.SecureURL, nil
+}
+
+// DeletePostPicture supprime une image de post sur Cloudinary
+func DeletePostPicture(imageURL string) error {
+	if imageURL == "" {
+		return nil // Pas d'image à supprimer
+	}
+
+	if cld == nil {
+		if err := InitCloudinary(); err != nil {
+			return err
+		}
+	}
+
+	publicID := ExtractPublicIDFromURL(imageURL)
+
+	if publicID == "" {
+		return fmt.Errorf("could not extract public ID from URL: %s", imageURL)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, err := cld.Upload.Destroy(ctx, uploader.DestroyParams{
+		PublicID: publicID,
+	})
+	
+	return err
+}
