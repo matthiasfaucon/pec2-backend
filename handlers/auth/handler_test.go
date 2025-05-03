@@ -55,7 +55,7 @@ func TestCreateUser_Success(t *testing.T) {
 	userData := map[string]interface{}{
 		"email":        "test@example.com",
 		"password":     "Password123",
-		"username":     "testuser",
+		"userName":     "testuser",
 		"firstName":    "John",
 		"lastName":     "Doe",
 		"birthDayDate": birthDate,
@@ -85,7 +85,7 @@ func TestCreateUser_EmptyEmail(t *testing.T) {
 	userData := map[string]interface{}{
 		"email":        "",
 		"password":     "Password123",
-		"username":     "testuser",
+		"userName":     "testuser",
 		"firstName":    "John",
 		"lastName":     "Doe",
 		"birthDayDate": birthDate,
@@ -114,7 +114,7 @@ func TestCreateUser_InvalidEmailFormat(t *testing.T) {
 	userData := map[string]interface{}{
 		"email":        "invalid-email",
 		"password":     "Password123",
-		"username":     "testuser",
+		"userName":     "testuser",
 		"firstName":    "John",
 		"lastName":     "Doe",
 		"birthDayDate": birthDate,
@@ -143,7 +143,7 @@ func TestCreateUser_EmptyPassword(t *testing.T) {
 	userData := map[string]interface{}{
 		"email":        "test@example.com",
 		"password":     "",
-		"username":     "testuser",
+		"userName":     "testuser",
 		"firstName":    "John",
 		"lastName":     "Doe",
 		"birthDayDate": birthDate,
@@ -172,7 +172,7 @@ func TestCreateUser_ShortPassword(t *testing.T) {
 	userData := map[string]interface{}{
 		"email":        "test@example.com",
 		"password":     "Abc1",
-		"username":     "testuser",
+		"userName":     "testuser",
 		"firstName":    "John",
 		"lastName":     "Doe",
 		"birthDayDate": birthDate,
@@ -221,7 +221,7 @@ func TestCreateUser_WeakPassword(t *testing.T) {
 			userData := map[string]interface{}{
 				"email":        "test@example.com",
 				"password":     tc.password,
-				"username":     "testuser",
+				"userName":     "testuser",
 				"firstName":    "John",
 				"lastName":     "Doe",
 				"birthDayDate": birthDate,
@@ -259,7 +259,7 @@ func TestCreateUser_EmailAlreadyExists(t *testing.T) {
 	userData := map[string]interface{}{
 		"email":        "existing@example.com",
 		"password":     "Password123",
-		"username":     "testuser",
+		"userName":     "testuser",
 		"firstName":    "John",
 		"lastName":     "Doe",
 		"birthDayDate": birthDate,
@@ -300,7 +300,7 @@ func TestCreateUser_DatabaseError(t *testing.T) {
 	userData := map[string]interface{}{
 		"email":        "test@example.com",
 		"password":     "Password123",
-		"username":     "testuser",
+		"userName":     "testuser",
 		"firstName":    "John",
 		"lastName":     "Doe",
 		"birthDayDate": birthDate,
@@ -601,7 +601,7 @@ func TestCreateUser_MissingFields(t *testing.T) {
 			userData: map[string]interface{}{
 				"email":        "test@example.com",
 				"password":     "Password123",
-				"username":     "testuser",
+				"userName":     "testuser",
 				"lastName":     "Doe",
 				"birthDayDate": time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 				"sexe":         "MAN",
@@ -613,7 +613,7 @@ func TestCreateUser_MissingFields(t *testing.T) {
 			userData: map[string]interface{}{
 				"email":        "test@example.com",
 				"password":     "Password123",
-				"username":     "testuser",
+				"userName":     "testuser",
 				"firstName":    "John",
 				"birthDayDate": time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 				"sexe":         "MAN",
@@ -625,7 +625,7 @@ func TestCreateUser_MissingFields(t *testing.T) {
 			userData: map[string]interface{}{
 				"email":     "test@example.com",
 				"password":  "Password123",
-				"username":  "testuser",
+				"userName":  "testuser",
 				"firstName": "John",
 				"lastName":  "Doe",
 				"sexe":      "MAN",
@@ -637,7 +637,7 @@ func TestCreateUser_MissingFields(t *testing.T) {
 			userData: map[string]interface{}{
 				"email":        "test@example.com",
 				"password":     "Password123",
-				"username":     "testuser",
+				"userName":     "testuser",
 				"firstName":    "John",
 				"lastName":     "Doe",
 				"birthDayDate": time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -649,7 +649,7 @@ func TestCreateUser_MissingFields(t *testing.T) {
 			userData: map[string]interface{}{
 				"email":        "test@example.com",
 				"password":     "Password123",
-				"username":     "testuser",
+				"userName":     "testuser",
 				"firstName":    "John",
 				"lastName":     "Doe",
 				"birthDayDate": time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -662,7 +662,7 @@ func TestCreateUser_MissingFields(t *testing.T) {
 			userData: map[string]interface{}{
 				"email":        "test@example.com",
 				"password":     "Password123",
-				"username":     "testuser",
+				"userName":     "testuser",
 				"firstName":    "John",
 				"lastName":     "Doe",
 				"birthDayDate": time.Now().AddDate(1, 0, 0),
