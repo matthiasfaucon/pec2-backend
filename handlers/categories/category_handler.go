@@ -58,7 +58,9 @@ func CreateCategory(c *gin.Context) {
 // @Description Retrieve all categories
 // @Tags categories
 // @Produce json
+// @Security BearerAuth
 // @Success 200 {array} models.Category
+// @Failure 401 {object} map[string]string "error: Unauthorized"
 // @Failure 500 {object} map[string]string "error: Error message"
 // @Router /categories [get]
 func GetAllCategories(c *gin.Context) {
