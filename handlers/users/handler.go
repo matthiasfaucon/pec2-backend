@@ -168,7 +168,7 @@ func UpdateUserProfile(c *gin.Context) {
 	if err == nil && file != nil {
 		oldImageURL := user.ProfilePicture
 
-		imageURL, err := utils.UploadProfilePicture(file)
+		imageURL, err := utils.UploadImage(file, "profile_pictures", "profile")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading profile picture: " + err.Error()})
 			return
@@ -177,7 +177,7 @@ func UpdateUserProfile(c *gin.Context) {
 		user.ProfilePicture = imageURL
 
 		if oldImageURL != "" {
-			_ = utils.DeleteProfilePicture(oldImageURL)
+			_ = utils.DeleteImage(oldImageURL)
 		}
 	}
 

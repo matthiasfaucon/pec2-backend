@@ -4,16 +4,19 @@ import (
 	"net/http"
 	"pec2-backend/db"
 	"pec2-backend/models"
+	"pec2-backend/utils"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // @Summary Create a new category
 // @Description Create a new category with the provided information
 // @Tags categories
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param category body models.CategoryCreate true "Category information"
+// @Param name formData string true "Category name"
+// @Param picture formData file true "Category picture"
 // @Security BearerAuth
 // @Success 201 {object} models.Category
 // @Failure 400 {object} map[string]string "error: Invalid input"
@@ -22,10 +25,11 @@ import (
 // @Router /categories [post]
 func CreateCategory(c *gin.Context) {
 	var categoryCreate models.CategoryCreate
-	isWellFormatted := c.ShouldBindJSON(&categoryCreate)
-	if isWellFormatted != nil {
+	categoryCreate.Name = c.PostForm("name")
+	
+	if categoryCreate.Name == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid input: " + isWellFormatted.Error(),
+			"error": "Name is required",
 		})
 		return
 	}
@@ -39,8 +43,22 @@ func CreateCategory(c *gin.Context) {
 		return
 	}
 
+	file, err := c.FormFile("picture")
+	if err == nil && file != nil {
+		imageURL, err := utils.UploadImage(file, "category_pictures", "category")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading picture: " + err.Error()})
+			return
+		}
+		categoryCreate.PictureURL = imageURL
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Picture is required"})
+		return
+	}
+
 	category := models.Category{
 		Name: categoryCreate.Name,
+		PictureURL: categoryCreate.PictureURL,
 	}
 
 	result := db.DB.Create(&category)
@@ -66,7 +84,9 @@ func CreateCategory(c *gin.Context) {
 func GetAllCategories(c *gin.Context) {
 	var categories []models.Category
 	
-	result := db.DB.Order("name ASC").Find(&categories)
+	// Create a new database session to avoid prepared statement conflicts
+	session := db.DB.Session(&gorm.Session{})
+	result := session.Order("name ASC").Find(&categories)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": result.Error.Error(),
@@ -103,6 +123,10 @@ func DeleteCategory(c *gin.Context) {
 	if err := db.DB.Exec("DELETE FROM post_categories WHERE category_id = ?", categoryID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error removing category from posts: " + err.Error()})
 		return
+	}
+
+	if category.PictureURL != "" {
+		_ = utils.DeleteImage(category.PictureURL)
 	}
 
 	result = db.DB.Delete(&category)
@@ -147,6 +171,19 @@ func UpdateCategory(c *gin.Context) {
 	}
 
 	category.Name = categoryUpdate.Name
+
+	file, err := c.FormFile("picture")
+	if err == nil && file != nil {
+		imageURL, err := utils.UploadImage(file, "category_pictures", "category")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading picture: " + err.Error()})
+			return
+		}
+		category.PictureURL = imageURL
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Picture is required"})
+		return
+	}
 
 	result = db.DB.Save(&category)
 	if result.Error != nil {

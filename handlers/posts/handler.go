@@ -71,7 +71,7 @@ func CreatePost(c *gin.Context) {
 
 	file, err := c.FormFile("picture")
 	if err == nil && file != nil {
-		imageURL, err := utils.UploadPostPicture(file)
+		imageURL, err := utils.UploadImage(file, "post_pictures", "post")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading picture: " + err.Error()})
 			return
@@ -225,10 +225,10 @@ func UpdatePost(c *gin.Context) {
 	file, err := c.FormFile("picture")
 	if err == nil && file != nil {
 		if post.PictureURL != "" {
-			_ = utils.DeletePostPicture(post.PictureURL)
+			_ = utils.DeleteImage(post.PictureURL)
 		}
 
-		imageURL, err := utils.UploadPostPicture(file)
+		imageURL, err := utils.UploadImage(file, "post_pictures", "post")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading picture: " + err.Error()})
 			return
@@ -299,7 +299,7 @@ func DeletePost(c *gin.Context) {
 	}
 
 	if post.PictureURL != "" {
-		_ = utils.DeletePostPicture(post.PictureURL)
+		_ = utils.DeleteImage(post.PictureURL)
 	}
 
 	if err := db.DB.Model(&post).Association("Categories").Clear(); err != nil {
