@@ -1,11 +1,12 @@
 package routes
 
 import (
+	"time"
+
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"github.com/gin-contrib/cors"
-	"time"
 )
 
 func SetupRouter() *gin.Engine {
@@ -24,6 +25,8 @@ func SetupRouter() *gin.Engine {
 	AuthRoutes(r)
 	ContactsRoutes(r)
 	UsersRoutes(r)
+	CategoriesRoutes(r)
+	PostsRoutes(r)
 
 	return r
 }
