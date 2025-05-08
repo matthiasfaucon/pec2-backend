@@ -400,6 +400,20 @@ func UpdateContentCreatorStatus(c *gin.Context) {
 		return
 	}
 
+	var newRole models.Role
+	if statusUpdate.Status == models.ContentCreatorStatusApproved {
+		newRole = models.ContentCreator
+	} else {
+		newRole = models.UserRole
+	}
+
+	if result := db.DB.Model(&user).Update("role", newRole); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Error updating user role: " + result.Error.Error(),
+		})
+		return
+	}
+
 	mailsmodels.ContentCreatorStatusUpdate(mailsmodels.ContentCreatorStatusUpdateData{
 		FirstName:   user.FirstName,
 		LastName:    user.LastName,
