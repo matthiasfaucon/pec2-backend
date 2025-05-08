@@ -27,6 +27,7 @@ func SetupRouter() *gin.Engine {
 	UsersRoutes(r)
 	CategoriesRoutes(r)
 	PostsRoutes(r)
+	ContentCreatorsRoutes(r)
 
 	return r
 }
