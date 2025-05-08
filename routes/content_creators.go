@@ -8,11 +8,11 @@ import (
 )
 
 func ContentCreatorsRoutes(r *gin.Engine) {
-	// Routes protégées nécessitant une authentification
 	contentCreatorRoutes := r.Group("/content-creators")
 	contentCreatorRoutes.Use(middleware.JWTAuth())
 	{
 		contentCreatorRoutes.POST("", content_creators.Apply)
+		contentCreatorRoutes.PUT("", content_creators.UpdateContentCreatorInfo)
 	}
 
 }

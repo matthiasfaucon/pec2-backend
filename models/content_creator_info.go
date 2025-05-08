@@ -4,24 +4,33 @@ import (
 	"time"
 )
 
+// ContentCreatorStatusType définit les différents statuts possibles pour une demande de content creator
+type ContentCreatorStatusType string
+
+const (
+	ContentCreatorStatusPending  ContentCreatorStatusType = "PENDING"
+	ContentCreatorStatusApproved ContentCreatorStatusType = "APPROVED"
+	ContentCreatorStatusRejected ContentCreatorStatusType = "REJECTED"
+)
+
 // ContentCreatorInfo represents a content creator application
 type ContentCreatorInfo struct {
-	ID               string    `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	UserID           string    `json:"userId" gorm:"type:uuid;not null"`
-	CompanyName      string    `json:"companyName" binding:"required"`
-	CompanyType      string    `json:"companyType" binding:"required"`
-	SiretNumber      string    `json:"siretNumber" binding:"required"`
-	VatNumber        string    `json:"vatNumber"`
-	StreetAddress    string    `json:"streetAddress" binding:"required"`
-	PostalCode       string    `json:"postalCode" binding:"required"`
-	City             string    `json:"city" binding:"required"`
-	Country          string    `json:"country" binding:"required"`
-	Iban             string    `json:"iban" binding:"required"`
-	Bic              string    `json:"bic" binding:"required"`
-	DocumentProofUrl string    `json:"documentProofUrl" binding:"required"`
-	Verified         bool      `json:"verified" gorm:"default:false"`
-	CreatedAt        time.Time `json:"createdAt"`
-	UpdatedAt        time.Time `json:"updatedAt"`
+	ID               string                   `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	UserID           string                   `json:"userId" gorm:"type:uuid;not null"`
+	CompanyName      string                   `json:"companyName" binding:"required"`
+	CompanyType      string                   `json:"companyType" binding:"required"`
+	SiretNumber      string                   `json:"siretNumber" binding:"required"`
+	VatNumber        string                   `json:"vatNumber"`
+	StreetAddress    string                   `json:"streetAddress" binding:"required"`
+	PostalCode       string                   `json:"postalCode" binding:"required"`
+	City             string                   `json:"city" binding:"required"`
+	Country          string                   `json:"country" binding:"required"`
+	Iban             string                   `json:"iban" binding:"required"`
+	Bic              string                   `json:"bic" binding:"required"`
+	DocumentProofUrl string                   `json:"documentProofUrl" binding:"required"`
+	Status           ContentCreatorStatusType `json:"status" gorm:"type:varchar(20);default:'PENDING'"`
+	CreatedAt        time.Time                `json:"createdAt"`
+	UpdatedAt        time.Time                `json:"updatedAt"`
 }
 
 func (ContentCreatorInfo) TableName() string {
@@ -41,4 +50,10 @@ type ContentCreatorInfoCreate struct {
 	Country       string `json:"country" form:"country" binding:"required" example:"France"`
 	Iban          string `json:"iban" form:"iban" binding:"required" example:"FR7630006000011234567890189"`
 	Bic           string `json:"bic" form:"bic" binding:"required" example:"BNPAFRPP"`
+}
+
+// ContentCreatorStatusUpdate modèle pour mettre à jour le statut d'une demande de content creator
+// @Description modèle pour mettre à jour le statut d'une demande de content creator
+type ContentCreatorStatusUpdate struct {
+	Status ContentCreatorStatusType `json:"status" binding:"required" example:"APPROVED"`
 }
