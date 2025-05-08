@@ -21,7 +21,7 @@ import (
 // @Param isFree formData boolean false "Is the post free"
 // @Param enable formData boolean false "Is the post enabled"
 // @Param categories formData []string false "Category IDs"
-// @Param picture formData file false "Post picture"
+// @Param file formData file false "Post picture"
 // @Security BearerAuth
 // @Success 201 {object} models.Post
 // @Failure 400 {object} map[string]string "error: Invalid input"
@@ -43,16 +43,16 @@ func CreatePost(c *gin.Context) {
 
 	isFreeStr := c.Request.FormValue("isFree")
 	var isFree bool
-	switch  isFreeStr {
+	switch isFreeStr {
 	case "true":
 		isFree = true
 	case "false":
 		isFree = false
 	default:
 		isFree = false
-		
+
 	}
-	
+
 	categoriesStr := c.Request.FormValue("categories")
 	var categoryIDs []string
 	if categoriesStr != "" {
@@ -69,7 +69,7 @@ func CreatePost(c *gin.Context) {
 		Enable: true,
 	}
 
-	file, err := c.FormFile("picture")
+	file, err := c.FormFile("file")
 	if err == nil && file != nil {
 		imageURL, err := utils.UploadImage(file, "post_pictures", "post")
 		if err != nil {
@@ -88,12 +88,12 @@ func CreatePost(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error finding categories: " + err.Error()})
 			return
 		}
-		
+
 		if len(categories) == 0 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "No valid categories found"})
 			return
 		}
-		
+
 		post.Categories = categories
 	}
 
@@ -175,7 +175,7 @@ func GetPostByID(c *gin.Context) {
 // @Param isFree formData boolean false "Is the post free"
 // @Param enable formData boolean false "Is the post enabled"
 // @Param categories formData []string false "Category IDs"
-// @Param picture formData file false "Post picture"
+// @Param file formData file false "Post picture"
 // @Security BearerAuth
 // @Success 200 {object} models.Post
 // @Failure 400 {object} map[string]string "error: Invalid input"
@@ -213,16 +213,16 @@ func UpdatePost(c *gin.Context) {
 	if name != "" {
 		post.Name = name
 	}
-	
+
 	if isFreeStr != "" {
 		post.IsFree = isFreeStr == "true"
 	}
-	
+
 	if enableStr != "" {
 		post.Enable = enableStr == "true"
 	}
 
-	file, err := c.FormFile("picture")
+	file, err := c.FormFile("file")
 	if err == nil && file != nil {
 		if post.PictureURL != "" {
 			_ = utils.DeleteImage(post.PictureURL)
