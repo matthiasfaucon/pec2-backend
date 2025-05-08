@@ -109,7 +109,7 @@ func Apply(c *gin.Context) {
 		Iban:             contentCreatorInfoCreate.Iban,
 		Bic:              contentCreatorInfoCreate.Bic,
 		DocumentProofUrl: documentURL,
-		Verified:         false, 
+		Verified:         false,
 	}
 
 	result := db.DB.Create(&contentCreatorInfo)
