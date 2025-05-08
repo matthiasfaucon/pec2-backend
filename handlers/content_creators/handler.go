@@ -42,9 +42,16 @@ func Apply(c *gin.Context) {
 	// Check if user already has a content creator application
 	var existingApplication models.ContentCreatorInfo
 	if err := db.DB.Where("user_id = ?", userID).First(&existingApplication).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{
-			"error": "You already have a content creator application",
-		})
+		// Check verification status and respond accordingly
+		if existingApplication.Verified {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": "You are already a content creator",
+			})
+		} else {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": "You have already applied to become a content creator",
+			})
+		}
 		return
 	}
 
