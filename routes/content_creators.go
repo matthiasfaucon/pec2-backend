@@ -12,8 +12,7 @@ func ContentCreatorsRoutes(r *gin.Engine) {
 	contentCreatorRoutes := r.Group("/content-creators")
 	contentCreatorRoutes.Use(middleware.JWTAuth())
 	{
-		contentCreatorRoutes.POST("/", content_creators.Apply)
+		contentCreatorRoutes.POST("", content_creators.Apply)
 	}
-
 
 }

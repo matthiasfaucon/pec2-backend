@@ -51,7 +51,7 @@ func boolPointer(b bool) *bool {
 
 // Vérifie si l'extension du fichier est supportée
 func isValidImageType(filename string) bool {
-	validExtensions := []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"}
+	validExtensions := []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".pdf"}
 	lowerFilename := strings.ToLower(filename)
 
 	for _, ext := range validExtensions {

@@ -25,7 +25,7 @@ import (
 // @Param country formData string true "Country" default(France)
 // @Param iban formData string true "IBAN" default(FR7630006000011234567890189)
 // @Param bic formData string true "BIC" default(BNPAFRPP)
-// @Param documentProof formData file true "Document proof (PDF, image)"
+// @Param file formData file true "Document proof (PDF, image)"
 // @Success 201 {object} map[string]interface{} "message: Application submitted successfully"
 // @Failure 400 {object} map[string]interface{} "error: Invalid input"
 // @Failure 409 {object} map[string]interface{} "error: Application already exists"
@@ -80,7 +80,7 @@ func Apply(c *gin.Context) {
 		return
 	}
 
-	file, err := c.FormFile("documentProof")
+	file, err := c.FormFile("file")
 	if err != nil || file == nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Document proof is required",

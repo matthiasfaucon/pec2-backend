@@ -59,7 +59,7 @@ func TestApply_Success(t *testing.T) {
 	writer.WriteField("bic", "BNPAFRPP")
 
 	// Add file
-	part, _ := writer.CreateFormFile("documentProof", "test.pdf")
+	part, _ := writer.CreateFormFile("file", "test.pdf")
 	part.Write([]byte("test document content"))
 	writer.Close()
 
