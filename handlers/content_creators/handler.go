@@ -331,3 +331,84 @@ func GetAllContentCreators(c *gin.Context) {
 
 	c.JSON(http.StatusOK, contentCreators)
 }
+
+// @Summary Update content creator application status (Admin)
+// @Description Update the status of a content creator application (Admin access only)
+// @Tags content-creators
+// @Accept json
+// @Produce json
+// @Param id path string true "Content Creator Application ID"
+// @Param status body models.ContentCreatorStatusUpdate true "New status"
+// @Security BearerAuth
+// @Success 200 {object} map[string]string "message: Status updated successfully"
+// @Failure 400 {object} map[string]string "error: Invalid input"
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 403 {object} map[string]string "error: Forbidden - Admin access required"
+// @Failure 404 {object} map[string]string "error: Content creator application not found"
+// @Failure 500 {object} map[string]string "error: Error message"
+// @Router /content-creators/{id}/status [put]
+func UpdateContentCreatorStatus(c *gin.Context) {
+	id := c.Param("id")
+	var statusUpdate models.ContentCreatorStatusUpdate
+
+	if err := c.ShouldBindJSON(&statusUpdate); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid input data: " + err.Error(),
+		})
+		return
+	}
+
+	validStatus := false
+	for _, status := range []models.ContentCreatorStatusType{
+		models.ContentCreatorStatusPending,
+		models.ContentCreatorStatusApproved,
+		models.ContentCreatorStatusRejected,
+	} {
+		if statusUpdate.Status == status {
+			validStatus = true
+			break
+		}
+	}
+
+	if !validStatus {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid status",
+		})
+		return
+	}
+
+	var contentCreator models.ContentCreatorInfo
+	if result := db.DB.First(&contentCreator, "id = ?", id); result.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Content creator application not found",
+		})
+		return
+	}
+
+	var user models.User
+	if err := db.DB.First(&user, "id = ?", contentCreator.UserID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Error fetching user information",
+		})
+		return
+	}
+
+	if result := db.DB.Model(&contentCreator).Update("status", statusUpdate.Status); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": result.Error.Error(),
+		})
+		return
+	}
+
+	mailsmodels.ContentCreatorStatusUpdate(mailsmodels.ContentCreatorStatusUpdateData{
+		FirstName:   user.FirstName,
+		LastName:    user.LastName,
+		Email:       user.Email,
+		CompanyName: contentCreator.CompanyName,
+		Status:      statusUpdate.Status,
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Status updated successfully",
+	})
+}
