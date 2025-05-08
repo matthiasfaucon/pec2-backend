@@ -308,3 +308,26 @@ func UpdateContentCreatorInfo(c *gin.Context) {
 		"message": "Content creator information updated successfully",
 	})
 }
+
+// @Summary Get all content creator applications (Admin)
+// @Description Retrieves a list of all content creator applications (Admin access only)
+// @Tags content-creators
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.ContentCreatorInfo
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 403 {object} map[string]string "error: Forbidden - Admin access required"
+// @Failure 500 {object} map[string]string "error: Error message"
+// @Router /content-creators/all [get]
+func GetAllContentCreators(c *gin.Context) {
+	var contentCreators []models.ContentCreatorInfo
+	result := db.DB.Order("created_at DESC").Find(&contentCreators)
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, contentCreators)
+}
