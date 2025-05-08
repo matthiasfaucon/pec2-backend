@@ -66,6 +66,21 @@ func Apply(c *gin.Context) {
 		return
 	}
 
+	// Verify SIRET number with INSEE API
+	isValid, err := utils.VerifySiret(contentCreatorInfoCreate.SiretNumber)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Error verifying SIRET number: " + err.Error(),
+		})
+		return
+	}
+	if !isValid {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid SIRET number: The provided SIRET number does not exist or is not active",
+		})
+		return
+	}
+
 	// Handle document proof upload
 	file, err := c.FormFile("documentProof")
 	if err != nil || file == nil {
