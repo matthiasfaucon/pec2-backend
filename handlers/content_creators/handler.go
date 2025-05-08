@@ -136,12 +136,19 @@ func Apply(c *gin.Context) {
 	}
 
 	mailsmodels.ContentCreatorConfirmation(mailsmodels.ContentCreatorConfirmationData{
-		FirstName:   user.FirstName,
-		LastName:    user.LastName,
-		Email:       user.Email,
-		CompanyName: contentCreatorInfo.CompanyName,
-		CompanyType: contentCreatorInfo.CompanyType,
-		SiretNumber: contentCreatorInfo.SiretNumber,
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		Email:         user.Email,
+		CompanyName:   contentCreatorInfo.CompanyName,
+		CompanyType:   contentCreatorInfo.CompanyType,
+		SiretNumber:   contentCreatorInfo.SiretNumber,
+		VatNumber:     contentCreatorInfo.VatNumber,
+		StreetAddress: contentCreatorInfo.StreetAddress,
+		PostalCode:    contentCreatorInfo.PostalCode,
+		City:          contentCreatorInfo.City,
+		Country:       contentCreatorInfo.Country,
+		Iban:          contentCreatorInfo.Iban,
+		Bic:           contentCreatorInfo.Bic,
 	})
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -207,7 +214,6 @@ func UpdateContentCreatorInfo(c *gin.Context) {
 		})
 		return
 	}
-
 
 	if existingApplication.SiretNumber != contentCreatorInfoCreate.SiretNumber {
 		var existingSiret models.ContentCreatorInfo
@@ -283,12 +289,19 @@ func UpdateContentCreatorInfo(c *gin.Context) {
 	}
 
 	mailsmodels.ContentCreatorUpdate(mailsmodels.ContentCreatorUpdateData{
-		FirstName:   user.FirstName,
-		LastName:    user.LastName,
-		Email:       user.Email,
-		CompanyName: existingApplication.CompanyName,
-		CompanyType: existingApplication.CompanyType,
-		SiretNumber: existingApplication.SiretNumber,
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		Email:         user.Email,
+		CompanyName:   existingApplication.CompanyName,
+		CompanyType:   existingApplication.CompanyType,
+		SiretNumber:   existingApplication.SiretNumber,
+		VatNumber:     existingApplication.VatNumber,
+		StreetAddress: existingApplication.StreetAddress,
+		PostalCode:    existingApplication.PostalCode,
+		City:          existingApplication.City,
+		Country:       existingApplication.Country,
+		Iban:          existingApplication.Iban,
+		Bic:           existingApplication.Bic,
 	})
 
 	c.JSON(http.StatusOK, gin.H{

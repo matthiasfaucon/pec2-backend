@@ -6,12 +6,19 @@ import (
 )
 
 type ContentCreatorConfirmationData struct {
-	FirstName   string
-	LastName    string
-	Email       string
-	CompanyName string
-	CompanyType string
-	SiretNumber string
+	FirstName     string
+	LastName      string
+	Email         string
+	CompanyName   string
+	CompanyType   string
+	SiretNumber   string
+	VatNumber     string
+	StreetAddress string
+	PostalCode    string
+	City          string
+	Country       string
+	Iban          string
+	Bic           string
 }
 
 func ContentCreatorConfirmation(data ContentCreatorConfirmationData) {
@@ -35,7 +42,7 @@ func ContentCreatorConfirmation(data ContentCreatorConfirmationData) {
 						</div>
 
 						<div style="background-color: #f5f5f5; padding: 25px; border-radius: 10px; width: 80%%; max-width: 500px; margin: 0 auto 30px auto;">
-							<table style="width: 100%%; text-align: center;">
+							<table style="width: 100%%; text-align: left;">
 								<tr>
 									<td style="padding: 10px;">
 										<strong style="color: #722ED1;">Entreprise</strong>
@@ -54,6 +61,27 @@ func ContentCreatorConfirmation(data ContentCreatorConfirmationData) {
 										<p style="margin: 5px 0; color: #444;">%s</p>
 									</td>
 								</tr>
+								<tr>
+									<td style="padding: 10px;">
+										<strong style="color: #722ED1;">Numéro TVA</strong>
+										<p style="margin: 5px 0; color: #444;">%s</p>
+									</td>
+								</tr>
+								<tr>
+									<td style="padding: 10px;">
+										<strong style="color: #722ED1;">Adresse</strong>
+										<p style="margin: 5px 0; color: #444;">%s</p>
+										<p style="margin: 5px 0; color: #444;">%s %s</p>
+										<p style="margin: 5px 0; color: #444;">%s</p>
+									</td>
+								</tr>
+								<tr>
+									<td style="padding: 10px;">
+										<strong style="color: #722ED1;">Coordonnées bancaires</strong>
+										<p style="margin: 5px 0; color: #444;">IBAN : %s</p>
+										<p style="margin: 5px 0; color: #444;">BIC : %s</p>
+									</td>
+								</tr>
 							</table>
 						</div>
 
@@ -67,7 +95,8 @@ func ContentCreatorConfirmation(data ContentCreatorConfirmationData) {
 			</tbody>
 		</table>
 	</div>
-`, data.FirstName, data.LastName, data.CompanyName, data.CompanyType, data.SiretNumber)
+`, data.FirstName, data.LastName, data.CompanyName, data.CompanyType, data.SiretNumber, data.VatNumber,
+		data.StreetAddress, data.PostalCode, data.City, data.Country, data.Iban, data.Bic)
 
 	message := []byte(subject + mime + body)
 	utils.SendMail(data.Email, message)
