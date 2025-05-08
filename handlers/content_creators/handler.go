@@ -19,7 +19,7 @@ import (
 // @Failure 409 {object} map[string]interface{} "error: Application already exists"
 // @Failure 500 {object} map[string]interface{} "error: Error message"
 // @Security BearerAuth
-// @Router /content-creators/apply [post]
+// @Router /content-creators [post]
 func Apply(c *gin.Context) {
 	var contentCreatorInfoCreate models.ContentCreatorInfoCreate
 
