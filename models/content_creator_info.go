@@ -31,15 +31,14 @@ func (ContentCreatorInfo) TableName() string {
 // ContentCreatorInfoCreate model for creating content creator info
 // @Description model for applying to become a content creator
 type ContentCreatorInfoCreate struct {
-	CompanyName      string `json:"companyName" binding:"required" example:"Creative Studios"`
-	CompanyType      string `json:"companyType" binding:"required" example:"Limited Company"`
-	SiretNumber      string `json:"siretNumber" binding:"required" example:"12345678901234"`
-	VatNumber        string `json:"vatNumber" example:"FR12345678901"`
-	StreetAddress    string `json:"streetAddress" binding:"required" example:"123 Content Street"`
-	PostalCode       string `json:"postalCode" binding:"required" example:"75001"`
-	City             string `json:"city" binding:"required" example:"Paris"`
-	Country          string `json:"country" binding:"required" example:"France"`
-	Iban             string `json:"iban" binding:"required" example:"FR7630006000011234567890189"`
-	Bic              string `json:"bic" binding:"required" example:"BNPAFRPP"`
-	DocumentProofUrl string `json:"documentProofUrl" binding:"required" example:"https://storage.example.com/documents/proof123.pdf"`
+	CompanyName   string `json:"companyName" form:"companyName" binding:"required" example:"Creative Studios"`
+	CompanyType   string `json:"companyType" form:"companyType" binding:"required" example:"Limited Company"`
+	SiretNumber   string `json:"siretNumber" form:"siretNumber" binding:"required" example:"12345678901234"`
+	VatNumber     string `json:"vatNumber" form:"vatNumber" example:"FR12345678901"`
+	StreetAddress string `json:"streetAddress" form:"streetAddress" binding:"required" example:"123 Content Street"`
+	PostalCode    string `json:"postalCode" form:"postalCode" binding:"required" example:"75001"`
+	City          string `json:"city" form:"city" binding:"required" example:"Paris"`
+	Country       string `json:"country" form:"country" binding:"required" example:"France"`
+	Iban          string `json:"iban" form:"iban" binding:"required" example:"FR7630006000011234567890189"`
+	Bic           string `json:"bic" form:"bic" binding:"required" example:"BNPAFRPP"`
 }
