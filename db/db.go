@@ -36,6 +36,7 @@ func InitDB() {
 		&models.Contact{},
 		&models.Post{},
 		&models.Category{},
+		&models.ContentCreatorInfo{},
 	)
 	if err != nil {
 		fmt.Println("Error migrating database:", err)
