@@ -5,6 +5,7 @@ import (
 	"pec2-backend/db"
 	"pec2-backend/models"
 	"pec2-backend/utils"
+	mailsmodels "pec2-backend/utils/mails-models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -41,19 +42,18 @@ func Apply(c *gin.Context) {
 		return
 	}
 
-	// Get current user ID from context (set by JWTAuth middleware)
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "User ID not found in token",
+	userID := c.MustGet("user_id").(string)
+
+	var user models.User
+	if err := db.DB.First(&user, "id = ?", userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Error fetching user information",
 		})
 		return
 	}
 
-	// Check if user already has a content creator application
 	var existingApplication models.ContentCreatorInfo
 	if err := db.DB.Where("user_id = ?", userID).First(&existingApplication).Error; err == nil {
-		// Check verification status and respond accordingly
 		if existingApplication.Verified {
 			c.JSON(http.StatusConflict, gin.H{
 				"error": "You are already a content creator",
@@ -66,7 +66,6 @@ func Apply(c *gin.Context) {
 		return
 	}
 
-	// Verify SIRET number with INSEE API
 	isValid, err := utils.VerifySiret(contentCreatorInfoCreate.SiretNumber)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -81,7 +80,6 @@ func Apply(c *gin.Context) {
 		return
 	}
 
-	// Handle document proof upload
 	file, err := c.FormFile("documentProof")
 	if err != nil || file == nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -90,7 +88,6 @@ func Apply(c *gin.Context) {
 		return
 	}
 
-	// Upload document to Cloudinary
 	documentURL, err := utils.UploadImage(file, "content_creator_documents", "document")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -99,9 +96,8 @@ func Apply(c *gin.Context) {
 		return
 	}
 
-	// Create new content creator application
 	contentCreatorInfo := models.ContentCreatorInfo{
-		UserID:           userID.(string),
+		UserID:           userID,
 		CompanyName:      contentCreatorInfoCreate.CompanyName,
 		CompanyType:      contentCreatorInfoCreate.CompanyType,
 		SiretNumber:      contentCreatorInfoCreate.SiretNumber,
@@ -113,7 +109,7 @@ func Apply(c *gin.Context) {
 		Iban:             contentCreatorInfoCreate.Iban,
 		Bic:              contentCreatorInfoCreate.Bic,
 		DocumentProofUrl: documentURL,
-		Verified:         false, // Default to false, needs admin verification
+		Verified:         false, 
 	}
 
 	result := db.DB.Create(&contentCreatorInfo)
@@ -123,6 +119,15 @@ func Apply(c *gin.Context) {
 		})
 		return
 	}
+
+	mailsmodels.ContentCreatorConfirmation(mailsmodels.ContentCreatorConfirmationData{
+		FirstName:   user.FirstName,
+		LastName:    user.LastName,
+		Email:       user.Email,
+		CompanyName: contentCreatorInfo.CompanyName,
+		CompanyType: contentCreatorInfo.CompanyType,
+		SiretNumber: contentCreatorInfo.SiretNumber,
+	})
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Content creator application submitted successfully",
