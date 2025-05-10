@@ -230,7 +230,7 @@ type UserStatsResponse struct {
 	Label  string `json:"label"`
 }
 
-// @Summary Get user statistics
+// @Summary Get user statistics (Admin)
 // @Description Get count of users by month or year
 // @Tags users
 // @Accept json
