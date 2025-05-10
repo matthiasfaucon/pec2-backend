@@ -5,7 +5,7 @@ import (
 	"pec2-backend/utils"
 )
 
-type ContentCreatorConfirmationData struct {
+type ContentCreatorUpdateData struct {
 	FirstName     string
 	LastName      string
 	Email         string
@@ -21,8 +21,8 @@ type ContentCreatorConfirmationData struct {
 	Bic           string
 }
 
-func ContentCreatorConfirmation(data ContentCreatorConfirmationData) {
-	subject := "Subject: Confirmation de votre demande de compte créateur - OnlyFlick \r\n"
+func ContentCreatorUpdate(data ContentCreatorUpdateData) {
+	subject := "Subject: Mise à jour de votre compte créateur - OnlyFlick \r\n"
 	mime := "MIME-version: 1.0;\r\nContent-Type: text/html; charset=\"UTF-8\";\r\n\r\n"
 	body := fmt.Sprintf(`
 	<div style="background-color: #722ED1; width: 100%%; min-height: 300px; padding: 30px; box-sizing:border-box">
@@ -30,15 +30,15 @@ func ContentCreatorConfirmation(data ContentCreatorConfirmationData) {
 			<tbody>
 				<tr>
 					<td style="padding: 20px;">
-						<h1 style="text-align:center; color: #333; margin-bottom: 30px;">Demande de compte créateur reçue !</h1>
+						<h1 style="text-align:center; color: #333; margin-bottom: 30px;">Mise à jour de votre compte créateur</h1>
 						
 						<div style="text-align:center; margin-bottom: 30px;">
 							<p style="font-size: 16px; color: #444;">Bonjour %s %s,</p>
-							<p style="font-size: 16px; color: #444;">Nous avons bien reçu votre demande de compte créateur pour votre entreprise.</p>
+							<p style="font-size: 16px; color: #444;">Nous avons bien reçu les modifications apportées à votre compte créateur.</p>
 						</div>
 
 						<div style="text-align:center; margin-bottom: 20px;">
-							<p style="font-size: 16px; color: #444; font-weight: bold;">Récapitulatif de votre demande :</p>
+							<p style="font-size: 16px; color: #444; font-weight: bold;">Récapitulatif de vos modifications :</p>
 						</div>
 
 						<div style="background-color: #f5f5f5; padding: 25px; border-radius: 10px; width: 80%%; max-width: 500px; margin: 0 auto 30px auto;">
@@ -86,8 +86,8 @@ func ContentCreatorConfirmation(data ContentCreatorConfirmationData) {
 						</div>
 
 						<div style="text-align:center; margin-bottom: 20px;">
-							<p style="font-size: 16px; color: #444;">Notre équipe va examiner votre demande dans les plus brefs délais.</p>
-							<p style="font-size: 16px; color: #444;">Vous recevrez un email dès que votre demande aura été traitée.</p>
+							<p style="font-size: 16px; color: #444;">Vos modifications ont été enregistrées et votre compte est maintenant en attente de validation.</p>
+							<p style="font-size: 16px; color: #444;">Notre équipe va examiner ces changements dans les plus brefs délais.</p>
 							<p style="font-size: 16px; color: #444; margin-top: 30px; font-weight: bold;">Merci de votre confiance !</p>
 						</div>
 					</td>

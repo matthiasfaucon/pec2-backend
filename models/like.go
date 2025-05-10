@@ -10,3 +10,7 @@ type Like struct {
 	UserID    string    `json:"userId" gorm:"column:user_id"`
 	CreatedAt time.Time `json:"createdAt"`
 }
+
+func (Like) TableName() string {
+	return "likes"
+}

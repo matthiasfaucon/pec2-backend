@@ -11,7 +11,7 @@ type Sexe string
 const (
 	AdminRole  Role = "ADMIN"
 	UserRole   Role = "USER"
-	Subscriber Role = "SUBSCRIBER"
+	ContentCreator Role = "CONTENT_CREATOR"
 )
 
 const (

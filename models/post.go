@@ -13,6 +13,7 @@ type Post struct {
 	Enable     bool       `json:"enable" gorm:"default:true"`
 	Categories []Category `json:"categories" gorm:"many2many:post_categories;"`
 	Likes      []Like     `json:"likes,omitempty"`
+	Reports    []Report   `json:"reports,omitempty"`
 	CreatedAt  time.Time  `json:"createdAt"`
 	UpdatedAt  time.Time  `json:"updatedAt"`
 	DeletedAt  *time.Time `json:"deletedAt,omitempty" gorm:"index"`

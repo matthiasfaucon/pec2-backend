@@ -3,6 +3,7 @@ package routes
 import (
 	"pec2-backend/handlers/posts"
 	"pec2-backend/handlers/posts/likes"
+	"pec2-backend/handlers/posts/report"
 	"pec2-backend/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -23,5 +24,6 @@ func PostsRoutes(r *gin.Engine) {
 
 		// Routes des interactions
 		postsRoutes.POST("/:id/like", likes.ToggleLike)
+		postsRoutes.POST("/:id/report", report.ReportPost)
 	}
 }
