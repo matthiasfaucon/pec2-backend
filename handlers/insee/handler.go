@@ -43,7 +43,7 @@ func GetEntrepriseInfo(c *gin.Context) {
 	url := "https://api.insee.fr/api-sirene/3.11/siret/" + siret
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur création requête"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating request"})
 		return
 	}
 	req.Header.Set("X-INSEE-Api-Key-Integration", apiKey)
@@ -52,17 +52,17 @@ func GetEntrepriseInfo(c *gin.Context) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur appel INSEE"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error calling INSEE"})
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		c.JSON(http.StatusNotFound, gin.H{"error": "SIRET non trouvé"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Siret not found"})
 		return
 	}
 	if resp.StatusCode != http.StatusOK {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur INSEE", "status": resp.StatusCode})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "INSEE error", "status": resp.StatusCode})
 		return
 	}
 
@@ -84,16 +84,12 @@ func GetEntrepriseInfo(c *gin.Context) {
 		} `json:"etablissement"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur décodage INSEE"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error decoding INSEE"})
 		return
 	}
 
 	etab := apiResp.Etablissement
-	adresse := etab.AdresseEtablissement.ComplementAdresseEtablissement
-	if adresse != "" {
-		adresse += ", "
-	}
-	adresse += etab.AdresseEtablissement.NumeroVoieEtablissement + " " + etab.AdresseEtablissement.TypeVoieEtablissement + " " + etab.AdresseEtablissement.LibelleVoieEtablissement
+	adresse := etab.AdresseEtablissement.NumeroVoieEtablissement + " " + etab.AdresseEtablissement.TypeVoieEtablissement + " " + etab.AdresseEtablissement.LibelleVoieEtablissement
 
 	info := EntrepriseInfo{
 		Siret:        etab.Siret,
