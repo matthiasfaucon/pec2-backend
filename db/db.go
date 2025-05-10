@@ -35,6 +35,7 @@ func InitDB() {
 		&models.User{},
 		&models.Contact{},
 		&models.Post{},
+		&models.Like{},
 		&models.Category{},
 		&models.ContentCreatorInfo{},
 	)

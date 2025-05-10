@@ -53,12 +53,14 @@ func CreatePost(c *gin.Context) {
 
 	}
 
-	categoriesStr := c.Request.FormValue("categories")
-	var categoryIDs []string
-	if categoriesStr != "" {
-		if err := json.Unmarshal([]byte(categoriesStr), &categoryIDs); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid categories format: " + err.Error()})
-			return
+	categoryIDs := c.PostFormArray("categories")
+	if len(categoryIDs) == 0 {
+		categoriesStr := c.Request.FormValue("categories")
+		if categoriesStr != "" {
+			if err := json.Unmarshal([]byte(categoriesStr), &categoryIDs); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid categories format: " + err.Error()})
+				return
+			}
 		}
 	}
 
