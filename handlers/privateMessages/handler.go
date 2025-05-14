@@ -84,7 +84,6 @@ func GetUserMessages(c *gin.Context) {
 
 	var messages []models.PrivateMessage
 
-	// Get all messages where the user is either sender or receiver
 	result := db.DB.Where("sender_id = ? OR receiver_id = ?", userID, userID).
 		Order("created_at DESC").
 		Find(&messages)
@@ -94,7 +93,6 @@ func GetUserMessages(c *gin.Context) {
 		return
 	}
 
-	// Enhance response with user information
 	type EnhancedMessage struct {
 		models.PrivateMessage
 		SenderName    string `json:"senderName"`
@@ -107,10 +105,8 @@ func GetUserMessages(c *gin.Context) {
 	for _, msg := range messages {
 		var sender, receiver models.User
 
-		// Get sender info
 		db.DB.Select("user_name").Where("id = ?", msg.SenderID).First(&sender)
 
-		// Get receiver info
 		db.DB.Select("user_name").Where("id = ?", msg.ReceiverID).First(&receiver)
 
 		enhancedMsg := EnhancedMessage{
@@ -118,6 +114,108 @@ func GetUserMessages(c *gin.Context) {
 			SenderName:     sender.UserName,
 			ReceiverName:   receiver.UserName,
 			IsCurrentUser:  msg.SenderID == userID.(string),
+		}
+
+		enhancedMessages = append(enhancedMessages, enhancedMsg)
+	}
+
+	c.JSON(http.StatusOK, enhancedMessages)
+}
+
+// @Summary Get received messages
+// @Description Get all messages received by the authenticated user
+// @Tags private-messages
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} object "List of received messages"
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 500 {object} map[string]string "error: Error retrieving messages"
+// @Router /private-messages/received [get]
+func GetReceivedMessages(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var messages []models.PrivateMessage
+
+	result := db.DB.Where("receiver_id = ?", userID).
+		Order("created_at DESC").
+		Find(&messages)
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving messages: " + result.Error.Error()})
+		return
+	}
+
+	type EnhancedMessage struct {
+		models.PrivateMessage
+		SenderName string `json:"senderName"`
+	}
+
+	var enhancedMessages []EnhancedMessage
+
+	for _, msg := range messages {
+		var sender models.User
+
+		db.DB.Select("user_name").Where("id = ?", msg.SenderID).First(&sender)
+
+		enhancedMsg := EnhancedMessage{
+			PrivateMessage: msg,
+			SenderName:     sender.UserName,
+		}
+
+		enhancedMessages = append(enhancedMessages, enhancedMsg)
+	}
+
+	c.JSON(http.StatusOK, enhancedMessages)
+}
+
+// @Summary Get sent messages
+// @Description Get all messages sent by the authenticated user
+// @Tags private-messages
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} object "List of sent messages"
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 500 {object} map[string]string "error: Error retrieving messages"
+// @Router /private-messages/sent [get]
+func GetSentMessages(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var messages []models.PrivateMessage
+
+	result := db.DB.Where("sender_id = ?", userID).
+		Order("created_at DESC").
+		Find(&messages)
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving messages: " + result.Error.Error()})
+		return
+	}
+
+	type EnhancedMessage struct {
+		models.PrivateMessage
+		ReceiverName string `json:"receiverName"`
+	}
+
+	var enhancedMessages []EnhancedMessage
+
+	for _, msg := range messages {
+		var receiver models.User
+
+		db.DB.Select("user_name").Where("id = ?", msg.ReceiverID).First(&receiver)
+
+		enhancedMsg := EnhancedMessage{
+			PrivateMessage: msg,
+			ReceiverName:   receiver.UserName,
 		}
 
 		enhancedMessages = append(enhancedMessages, enhancedMsg)

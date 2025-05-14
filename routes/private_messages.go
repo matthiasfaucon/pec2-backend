@@ -13,5 +13,7 @@ func PrivateMessagesRoutes(r *gin.Engine) {
 	{
 		privateMessagesGroup.POST("", privateMessages.CreatePrivateMessage)
 		privateMessagesGroup.GET("", privateMessages.GetUserMessages)
+		privateMessagesGroup.GET("/received", privateMessages.GetReceivedMessages)
+		privateMessagesGroup.GET("/sent", privateMessages.GetSentMessages)
 	}
 }
