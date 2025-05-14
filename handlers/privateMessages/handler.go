@@ -54,7 +54,7 @@ func CreatePrivateMessage(c *gin.Context) {
 		SenderID:   senderID.(string),
 		ReceiverID: messageCreate.ReceiverID,
 		Content:    messageCreate.Content,
-		Status:     "UNREAD",
+		Status:     models.MessageStatusUnread,
 	}
 
 	if result := db.DB.Create(&privateMessage); result.Error != nil {
@@ -222,4 +222,64 @@ func GetSentMessages(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, enhancedMessages)
+}
+
+
+
+// @Summary Mark message as read
+// @Description Mark a specific private message as read
+// @Tags private-messages
+// @Accept json
+// @Produce json
+// @Param id path string true "Message ID"
+// @Security BearerAuth
+// @Success 200 {object} map[string]string "message: Message marked as read"
+// @Failure 400 {object} map[string]string "error: Bad request"
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 403 {object} map[string]string "error: Forbidden"
+// @Failure 404 {object} map[string]string "error: Message not found"
+// @Failure 500 {object} map[string]string "error: Error updating message"
+// @Router /private-messages/{id}/read [patch]
+func MarkMessageAsRead(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	messageID := c.Param("id")
+	if messageID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Message ID is required"})
+		return
+	}
+
+	var message models.PrivateMessage
+	if result := db.DB.Where("id = ?", messageID).First(&message); result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Message not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving message: " + result.Error.Error()})
+		}
+		return
+	}
+
+	// Verify that the user is the receiver of the message
+	if message.ReceiverID != userID.(string) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to mark this message as read"})
+		return
+	}
+
+	// If message is already read, return success
+	if message.Status == models.MessageStatusRead {
+		c.JSON(http.StatusOK, gin.H{"message": "Message is already marked as read"})
+		return
+	}
+
+	// Update message status to READ
+	if result := db.DB.Model(&message).Update("status", models.MessageStatusRead); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error marking message as read: " + result.Error.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Message marked as read"})
 }

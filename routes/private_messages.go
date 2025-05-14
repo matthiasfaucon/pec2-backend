@@ -15,5 +15,6 @@ func PrivateMessagesRoutes(r *gin.Engine) {
 		privateMessagesGroup.GET("", privateMessages.GetUserMessages)
 		privateMessagesGroup.GET("/received", privateMessages.GetReceivedMessages)
 		privateMessagesGroup.GET("/sent", privateMessages.GetSentMessages)
+		privateMessagesGroup.PATCH("/:id/read", privateMessages.MarkMessageAsRead)
 	}
 }
