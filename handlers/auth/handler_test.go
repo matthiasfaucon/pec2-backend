@@ -38,6 +38,10 @@ func TestCreateUser_Success(t *testing.T) {
 		WithArgs("test@example.com", 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
+	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE user_name = (.+) ORDER BY "users"."id" LIMIT (.+)`).
+		WithArgs("testuser", 1).
+		WillReturnError(gorm.ErrRecordNotFound)
+
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO "users" (.+) RETURNING "id"`).
 		WillReturnRows(mock.NewRows([]string{"id"}).AddRow("test-uuid"))
@@ -286,6 +290,10 @@ func TestCreateUser_DatabaseError(t *testing.T) {
 
 	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE email = (.+) AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT (.+)`).
 		WithArgs("test@example.com", 1).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE user_name = (.+) AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT (.+)`).
+		WithArgs("testuser", 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
 	mock.ExpectBegin()
@@ -692,4 +700,45 @@ func TestCreateUser_MissingFields(t *testing.T) {
 			assert.Contains(t, respBody["error"], tc.expectedError)
 		})
 	}
+}
+
+func TestCreateUser_UserNameAlreadyExists(t *testing.T) {
+	_, mock, cleanup := testutils.SetupTestDB(t)
+	defer cleanup()
+
+	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE email = (.+) ORDER BY "users"."id" LIMIT (.+)`).
+		WithArgs("test@example.com", 1).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE user_name = (.+) ORDER BY "users"."id" LIMIT (.+)`).
+		WithArgs("existinguser", 1).
+		WillReturnRows(mock.NewRows([]string{"id", "email", "user_name"}).
+			AddRow("existing-uuid", "existing@example.com", "existinguser"))
+
+	r := testutils.SetupTestRouter()
+	r.POST("/user", CreateUser)
+
+	birthDate := time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC)
+	userData := map[string]interface{}{
+		"email":        "test@example.com",
+		"password":     "Password123",
+		"userName":     "existinguser",
+		"firstName":    "John",
+		"lastName":     "Doe",
+		"birthDayDate": birthDate,
+		"sexe":         "MAN",
+	}
+	jsonData, _ := json.Marshal(userData)
+
+	req, _ := http.NewRequest(http.MethodPost, "/user", bytes.NewBuffer(jsonData))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	r.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusConflict, resp.Code)
+
+	var respBody map[string]string
+	json.Unmarshal(resp.Body.Bytes(), &respBody)
+	assert.Contains(t, respBody["error"], "This username is already taken")
 }

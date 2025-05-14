@@ -224,8 +224,6 @@ func GetSentMessages(c *gin.Context) {
 	c.JSON(http.StatusOK, enhancedMessages)
 }
 
-
-
 // @Summary Mark message as read
 // @Description Mark a specific private message as read
 // @Tags private-messages
