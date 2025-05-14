@@ -29,8 +29,8 @@ type PrivateMessage struct {
 // PrivateMessageCreate model for creating a private message
 // @Description model for creating a private message
 type PrivateMessageCreate struct {
-	ReceiverID string `json:"receiverId" binding:"required"`
-	Content    string `json:"content" binding:"required"`
+	ReceiverUserName string `json:"receiverUserName" binding:"required"`
+	Content          string `json:"content" binding:"required"`
 }
 
 func (PrivateMessage) TableName() string {

@@ -36,7 +36,7 @@ func CreatePrivateMessage(c *gin.Context) {
 	}
 
 	var receiver models.User
-	if result := db.DB.Where("id = ?", messageCreate.ReceiverID).First(&receiver); result.Error != nil {
+	if result := db.DB.Where("user_name = ?", messageCreate.ReceiverUserName).First(&receiver); result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Receiver not found"})
 		} else {
@@ -52,7 +52,7 @@ func CreatePrivateMessage(c *gin.Context) {
 
 	privateMessage := models.PrivateMessage{
 		SenderID:   senderID.(string),
-		ReceiverID: messageCreate.ReceiverID,
+		ReceiverID: receiver.ID,
 		Content:    messageCreate.Content,
 		Status:     models.MessageStatusUnread,
 	}
