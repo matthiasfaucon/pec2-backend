@@ -29,6 +29,7 @@ func SetupRouter() *gin.Engine {
 	PostsRoutes(r)
 	ContentCreatorsRoutes(r)
 	InseeRoutes(r)
+	PrivateMessagesRoutes(r)
 
 	return r
 }
