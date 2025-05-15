@@ -124,6 +124,18 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
+	if err := db.DB.Where("user_name = ?", userCreate.UserName).First(&existingUser).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{
+			"error": "This username is already taken",
+		})
+		return
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Error when checking the username existence",
+		})
+		return
+	}
+
 	passwordHash, err := hashPassword(userCreate.Password)
 
 	if err != nil {

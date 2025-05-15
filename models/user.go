@@ -9,8 +9,8 @@ type Role string
 type Sexe string
 
 const (
-	AdminRole  Role = "ADMIN"
-	UserRole   Role = "USER"
+	AdminRole      Role = "ADMIN"
+	UserRole       Role = "USER"
 	ContentCreator Role = "CONTENT_CREATOR"
 )
 
@@ -22,9 +22,9 @@ const (
 
 type User struct {
 	ID                     string       `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	Email                  string       `json:"email" binding:"required,email"`
+	Email                  string       `json:"email" binding:"required,email" gorm:"uniqueIndex"`
 	Password               string       `json:"password" binding:"required,min=6"`
-	UserName               string       `json:"userName" binding:"required"`
+	UserName               string       `json:"userName" binding:"required" gorm:"uniqueIndex"`
 	FirstName              string       `json:"firstName" binding:"required"`
 	LastName               string       `json:"lastName" binding:"required"`
 	BirthDayDate           time.Time    `json:"birthDayDate" binding:"required"`

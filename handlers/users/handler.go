@@ -144,6 +144,18 @@ func UpdateUserProfile(c *gin.Context) {
 	}
 
 	if formData.UserName != "" {
+		var existingUser models.User
+		if err := db.DB.Where("user_name = ? AND id != ?", formData.UserName, userID).First(&existingUser).Error; err == nil {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": "This username is already taken",
+			})
+			return
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Error when checking the username existence",
+			})
+			return
+		}
 		user.UserName = formData.UserName
 	}
 	if formData.Bio != "" {
