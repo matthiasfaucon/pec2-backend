@@ -6,7 +6,7 @@ import (
 
 type Post struct {
 	ID         string     `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	UserID     string     `json:"userId" gorm:"column:user_id"`
+	UserID     string     `json:"userId" gorm:"column:user_id;type:uuid;references:ID;foreignKey:fk_posts_user"`
 	Name       string     `json:"name" binding:"required"`
 	PictureURL string     `json:"pictureUrl" gorm:"column:picture_url"`
 	IsFree     bool       `json:"isFree" gorm:"default:false"`
@@ -28,10 +28,9 @@ type PostUpdate struct {
 	Name       string   `json:"name"`
 	IsFree     bool     `json:"isFree"`
 	Categories []string `json:"categories"`
-	Enable     bool    `json:"enable"`
+	Enable     bool     `json:"enable"`
 }
 
 func (Post) TableName() string {
 	return "posts"
 }
-
