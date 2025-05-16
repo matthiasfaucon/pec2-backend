@@ -145,8 +145,7 @@ func GetAllPosts(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving posts: " + err.Error()})
 		return
 	}
-
-	var response []models.PostResponse
+	var response []models.PostResponse = make([]models.PostResponse, 0, len(posts))
 	for _, post := range posts {
 		// Compter le nombre de likes
 		var likesCount int64
