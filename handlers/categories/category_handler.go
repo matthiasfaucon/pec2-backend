@@ -163,14 +163,12 @@ func UpdateCategory(c *gin.Context) {
 		return
 	}
 
-	// Récupérer le nom depuis le form-data
 	name := c.PostForm("name")
 	if name == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
 		return
 	}
 
-	// Vérifier si le nom existe déjà pour une autre catégorie
 	var existingCategory models.Category
 	if err := db.DB.Where("name = ? AND id != ?", name, categoryID).First(&existingCategory).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Category name already exists"})
@@ -179,15 +177,12 @@ func UpdateCategory(c *gin.Context) {
 
 	category.Name = name
 
-	// Gérer l'upload de l'image
 	file, err := c.FormFile("picture")
 	if err == nil && file != nil {
-		// Supprimer l'ancienne image si elle existe
 		if category.PictureURL != "" {
 			_ = utils.DeleteImage(category.PictureURL)
 		}
 
-		// Upload de la nouvelle image
 		imageURL, err := utils.UploadImage(file, "category_pictures", "category")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading picture: " + err.Error()})
