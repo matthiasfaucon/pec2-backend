@@ -143,25 +143,30 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
+	now := time.Now()
+	code := utils.GenerateCode()
+
 	user := models.User{
-		Email:              userCreate.Email,
-		Password:           passwordHash,
-		UserName:           userCreate.UserName,
-		FirstName:          userCreate.FirstName,
-		LastName:           userCreate.LastName,
-		BirthDayDate:       userCreate.BirthDayDate,
-		Sexe:               userCreate.Sexe,
-		Role:               models.UserRole,
-		Bio:                "",
-		ProfilePicture:     "",
-		StripeCustomerId:   "",
-		SubscriptionPrice:  0,
-		Enable:             true,
-		SubscriptionEnable: true,
-		CommentsEnable:     true,
-		MessageEnable:      true,
-		EmailVerifiedAt:    sql.NullTime{Valid: false},
-		Siret:              "",
+		Email:               userCreate.Email,
+		Password:            passwordHash,
+		UserName:            userCreate.UserName,
+		FirstName:           userCreate.FirstName,
+		LastName:            userCreate.LastName,
+		BirthDayDate:        userCreate.BirthDayDate,
+		Sexe:                userCreate.Sexe,
+		Role:                models.UserRole,
+		Bio:                 "",
+		ProfilePicture:      "",
+		StripeCustomerId:    "",
+		SubscriptionPrice:   0,
+		Enable:              true,
+		SubscriptionEnable:  true,
+		CommentsEnable:      true,
+		MessageEnable:       true,
+		EmailVerifiedAt:     sql.NullTime{Valid: false},
+		Siret:               "",
+		ConfirmationCode:    code,
+		ConfirmationCodeEnd: now.Add(1 * time.Hour),
 	}
 
 	result := db.DB.Create(&user)
@@ -172,15 +177,6 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	token, err := utils.GenerateJWT(user, 1)
-
-	if err != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Error when generating JWT"})
-		return
-	}
-
-	user.TokenVerificationEmail = token
-
 	resultSaveUser := db.DB.Save(&user)
 	if resultSaveUser.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -189,7 +185,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	mailsmodels.ConfirmEmail(user.Email, token)
+	mailsmodels.ConfirmEmail(user.Email, code)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User created successfully",
 		"email":   user.Email,
@@ -300,18 +296,10 @@ func Login(c *gin.Context) {
 // @Failure 401 {object} map[string]interface{} "error: user not found or can't decode JWT"
 // @Router /valid-email/{token} [get]
 func ValidEmail(c *gin.Context) {
-	token := c.Param("token")
+	code := c.Param("code")
 	var user models.User
 
-	claims, err := utils.DecodeJWT(token)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "can't decode JWT",
-		})
-		return
-	}
-
-	result := db.DB.Where("id = ?", claims["user_id"]).First(&user)
+	result := db.DB.Where("confirmation_code = ?", code).First(&user)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -323,6 +311,13 @@ func ValidEmail(c *gin.Context) {
 				"error": "Database error: " + result.Error.Error(),
 			})
 		}
+		return
+	}
+
+	if time.Now().After(user.ConfirmationCodeEnd) {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Confirmation code expired",
+		})
 		return
 	}
 
