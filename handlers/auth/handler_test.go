@@ -479,12 +479,13 @@ func TestValidEmail_Success(t *testing.T) {
 	_, mock, cleanup := testutils.SetupTestDB(t)
 	defer cleanup()
 
-	os.Setenv("JWT_SECRET", "test_secret_key")
+	confirmationCode := "test-confirmation-code"
+	futureTime := time.Now().Add(time.Hour * 24)
 
-	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE id = \$1 ORDER BY "users"."id" LIMIT \$2`).
-		WithArgs("test-uuid", 1).
-		WillReturnRows(mock.NewRows([]string{"id", "email", "email_verified_at"}).
-			AddRow("test-uuid", "test@example.com", sql.NullTime{Valid: false}))
+	mock.ExpectQuery(`SELECT \* FROM "users" WHERE confirmation_code = \$1 ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs(confirmationCode, 1).
+		WillReturnRows(mock.NewRows([]string{"id", "email", "email_verified_at", "confirmation_code", "confirmation_code_end"}).
+			AddRow("test-uuid", "test@example.com", sql.NullTime{Valid: false}, confirmationCode, futureTime))
 
 	mock.ExpectBegin()
 	mock.ExpectExec(`UPDATE "users" SET (.+) WHERE (.+)`).
@@ -492,12 +493,9 @@ func TestValidEmail_Success(t *testing.T) {
 	mock.ExpectCommit()
 
 	r := testutils.SetupTestRouter()
-	r.GET("/valid-email/:token", ValidEmail)
+	r.GET("/valid-email/:code", ValidEmail)
 
-	token, err := testutils.GenerateTestTokenString("test-uuid", "user")
-	assert.NoError(t, err)
-
-	req, _ := http.NewRequest(http.MethodGet, "/valid-email/"+token, nil)
+	req, _ := http.NewRequest(http.MethodGet, "/valid-email/"+confirmationCode, nil)
 	resp := httptest.NewRecorder()
 
 	r.ServeHTTP(resp, req)
@@ -505,30 +503,56 @@ func TestValidEmail_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 
 	var respBody map[string]string
-	err = json.Unmarshal(resp.Body.Bytes(), &respBody)
+	err := json.Unmarshal(resp.Body.Bytes(), &respBody)
 	assert.NoError(t, err, "Erreur lors de la désérialisation de la réponse JSON: %s", resp.Body.String())
 	assert.Equal(t, "User validate account", respBody["message"])
+}
+
+func TestValidEmail_CodeExpired(t *testing.T) {
+	_, mock, cleanup := testutils.SetupTestDB(t)
+	defer cleanup()
+
+	confirmationCode := "test-confirmation-code"
+	pastTime := time.Now().Add(-time.Hour * 24)
+
+	mock.ExpectQuery(`SELECT \* FROM "users" WHERE confirmation_code = \$1 ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs(confirmationCode, 1).
+		WillReturnRows(mock.NewRows([]string{"id", "email", "email_verified_at", "confirmation_code", "confirmation_code_end"}).
+			AddRow("test-uuid", "test@example.com", sql.NullTime{Valid: false}, confirmationCode, pastTime))
+
+	r := testutils.SetupTestRouter()
+	r.GET("/valid-email/:code", ValidEmail)
+
+	req, _ := http.NewRequest(http.MethodGet, "/valid-email/"+confirmationCode, nil)
+	resp := httptest.NewRecorder()
+
+	r.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusUnauthorized, resp.Code)
+
+	var respBody map[string]string
+	err := json.Unmarshal(resp.Body.Bytes(), &respBody)
+	assert.NoError(t, err)
+	assert.Equal(t, "Confirmation code expired", respBody["error"])
 }
 
 func TestValidEmail_AlreadyVerified(t *testing.T) {
 	_, mock, cleanup := testutils.SetupTestDB(t)
 	defer cleanup()
 
-	os.Setenv("JWT_SECRET", "test_secret_key")
-
+	confirmationCode := "test-confirmation-code"
+	futureTime := time.Now().Add(time.Hour * 24)
 	now := time.Now()
-	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE id = \$1 ORDER BY "users"."id" LIMIT \$2`).
-		WithArgs("test-uuid", 1).
-		WillReturnRows(mock.NewRows([]string{"id", "email", "email_verified_at"}).
-			AddRow("test-uuid", "test@example.com", sql.NullTime{Time: now, Valid: true}))
+
+	mock.ExpectQuery(`SELECT \* FROM "users" WHERE confirmation_code = \$1 ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs(confirmationCode, 1).
+		WillReturnRows(mock.NewRows([]string{"id", "email", "email_verified_at", "confirmation_code", "confirmation_code_end"}).
+			AddRow("test-uuid", "test@example.com", sql.NullTime{Time: now, Valid: true}, confirmationCode, futureTime))
 
 	r := testutils.SetupTestRouter()
-	r.GET("/valid-email/:token", ValidEmail)
+	r.GET("/valid-email/:code", ValidEmail)
 
-	token, err := testutils.GenerateTestTokenString("test-uuid", "user")
-	assert.NoError(t, err)
-
-	req, _ := http.NewRequest(http.MethodGet, "/valid-email/"+token, nil)
+	req, _ := http.NewRequest(http.MethodGet, "/valid-email/"+confirmationCode, nil)
 	resp := httptest.NewRecorder()
 
 	r.ServeHTTP(resp, req)
@@ -536,8 +560,8 @@ func TestValidEmail_AlreadyVerified(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 
 	var respBody map[string]string
-	err = json.Unmarshal(resp.Body.Bytes(), &respBody)
-	assert.NoError(t, err, "Erreur lors de la désérialisation de la réponse JSON: %s", resp.Body.String())
+	err := json.Unmarshal(resp.Body.Bytes(), &respBody)
+	assert.NoError(t, err)
 	assert.Equal(t, "User already validated account", respBody["error"])
 }
 
@@ -545,45 +569,26 @@ func TestValidEmail_UserNotFound(t *testing.T) {
 	_, mock, cleanup := testutils.SetupTestDB(t)
 	defer cleanup()
 
-	os.Setenv("JWT_SECRET", "test_secret_key")
+	confirmationCode := "nonexistent-code"
 
-	mock.ExpectQuery(`SELECT (.+) FROM "users" WHERE id = \$1 ORDER BY "users"."id" LIMIT \$2`).
-		WithArgs("nonexistent-uuid", 1).
+	mock.ExpectQuery(`SELECT \* FROM "users" WHERE confirmation_code = \$1 ORDER BY "users"."id" LIMIT \$2`).
+		WithArgs(confirmationCode, 1).
 		WillReturnError(gorm.ErrRecordNotFound)
 
 	r := testutils.SetupTestRouter()
-	r.GET("/valid-email/:token", ValidEmail)
+	r.GET("/valid-email/:code", ValidEmail)
 
-	token, err := testutils.GenerateTestTokenString("nonexistent-uuid", "user")
+	req, _ := http.NewRequest(http.MethodGet, "/valid-email/"+confirmationCode, nil)
+	resp := httptest.NewRecorder()
+
+	r.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusUnauthorized, resp.Code)
+
+	var respBody map[string]string
+	err := json.Unmarshal(resp.Body.Bytes(), &respBody)
 	assert.NoError(t, err)
-
-	req, _ := http.NewRequest(http.MethodGet, "/valid-email/"+token, nil)
-	resp := httptest.NewRecorder()
-
-	r.ServeHTTP(resp, req)
-
-	assert.Equal(t, http.StatusUnauthorized, resp.Code)
-
-	var respBody map[string]string
-	err = json.Unmarshal(resp.Body.Bytes(), &respBody)
-	assert.NoError(t, err, "Erreur lors de la désérialisation de la réponse JSON: %s", resp.Body.String())
 	assert.Equal(t, "User not found", respBody["error"])
-}
-
-func TestValidEmail_InvalidToken(t *testing.T) {
-	r := testutils.SetupTestRouter()
-	r.GET("/valid-email/:token", ValidEmail)
-
-	req, _ := http.NewRequest(http.MethodGet, "/valid-email/invalid_token", nil)
-	resp := httptest.NewRecorder()
-
-	r.ServeHTTP(resp, req)
-
-	assert.Equal(t, http.StatusUnauthorized, resp.Code)
-
-	var respBody map[string]string
-	json.Unmarshal(resp.Body.Bytes(), &respBody)
-	assert.Equal(t, "can't decode JWT", respBody["error"])
 }
 
 func TestCreateUser_MissingFields(t *testing.T) {
