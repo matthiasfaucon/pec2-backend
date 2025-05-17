@@ -26,7 +26,7 @@ import (
 func CreateCategory(c *gin.Context) {
 	var categoryCreate models.CategoryCreate
 	categoryCreate.Name = c.PostForm("name")
-	
+
 	if categoryCreate.Name == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Name is required",
@@ -57,7 +57,7 @@ func CreateCategory(c *gin.Context) {
 	}
 
 	category := models.Category{
-		Name: categoryCreate.Name,
+		Name:       categoryCreate.Name,
 		PictureURL: categoryCreate.PictureURL,
 	}
 
@@ -83,7 +83,7 @@ func CreateCategory(c *gin.Context) {
 // @Router /categories [get]
 func GetAllCategories(c *gin.Context) {
 	var categories []models.Category
-	
+
 	// Create a new database session to avoid prepared statement conflicts
 	session := db.DB.Session(&gorm.Session{})
 	result := session.Order("name ASC").Find(&categories)
@@ -141,10 +141,11 @@ func DeleteCategory(c *gin.Context) {
 // @Summary Update a category
 // @Description Update a category with the provided information
 // @Tags categories
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
 // @Param id path string true "Category ID"
-// @Param category body models.CategoryCreate true "Updated category information"
+// @Param name formData string true "Category name"
+// @Param picture formData file true "Category picture"
 // @Security BearerAuth
 // @Success 200 {object} models.Category
 // @Failure 400 {object} map[string]string "error: Invalid input"
@@ -156,24 +157,37 @@ func UpdateCategory(c *gin.Context) {
 	categoryID := c.Param("id")
 
 	var category models.Category
-
 	result := db.DB.First(&category, "id = ?", categoryID)
 	if result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
 		return
 	}
 
-	var categoryUpdate models.CategoryCreate
-	isWellFormatted := c.ShouldBindJSON(&categoryUpdate)
-	if isWellFormatted != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + isWellFormatted.Error()})
+	// Récupérer le nom depuis le form-data
+	name := c.PostForm("name")
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
 		return
 	}
 
-	category.Name = categoryUpdate.Name
+	// Vérifier si le nom existe déjà pour une autre catégorie
+	var existingCategory models.Category
+	if err := db.DB.Where("name = ? AND id != ?", name, categoryID).First(&existingCategory).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Category name already exists"})
+		return
+	}
 
+	category.Name = name
+
+	// Gérer l'upload de l'image
 	file, err := c.FormFile("picture")
 	if err == nil && file != nil {
+		// Supprimer l'ancienne image si elle existe
+		if category.PictureURL != "" {
+			_ = utils.DeleteImage(category.PictureURL)
+		}
+
+		// Upload de la nouvelle image
 		imageURL, err := utils.UploadImage(file, "category_pictures", "category")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading picture: " + err.Error()})
