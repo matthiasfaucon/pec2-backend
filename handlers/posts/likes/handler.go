@@ -44,7 +44,7 @@ func ToggleLike(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error removing like: " + err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"message": "Like removed successfully"})
+		c.JSON(http.StatusOK, gin.H{"message": "Like removed successfully", "action": "removed"})
 		return
 	}
 
@@ -59,5 +59,5 @@ func ToggleLike(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Like added successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Like added successfully", "action": "added"})
 }
