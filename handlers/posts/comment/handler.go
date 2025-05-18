@@ -38,6 +38,34 @@ type SSEComment struct {
 	CreatedAt string `json:"createdAt"`
 }
 
+func GetCommentsByPostID(c *gin.Context) {
+	postId := c.Param("id")
+	var comments []models.Comment
+
+	if err := db.DB.Where("post_id = ?", postId).Find(&comments).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve comments"})
+		return
+	}
+
+	var commentsResponse []SSEComment
+	for _, comment := range comments {
+		var user models.User
+		db.DB.Select("user_name").Where("id = ?", comment.UserID).First(&user)
+
+		sseComment := SSEComment{
+			ID:        comment.ID,
+			PostID:    comment.PostID,
+			UserID:    comment.UserID,
+			Content:   comment.Content,
+			UserName:  user.UserName,
+			CreatedAt: comment.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		}
+		commentsResponse = append(commentsResponse, sseComment)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"comments": commentsResponse})
+}
+
 // @Summary Handle SSE connection for comments
 // @Description Connect to SSE to receive comments in real-time for a specific post
 // @Tags comments
@@ -108,7 +136,7 @@ func HandleSSE(c *gin.Context) {
 	}
 
 	c.Writer.Write([]byte("event: connected\ndata: {\"status\":\"connected\"}\n\n"))
-	// ça permet d'éviter que le client ait reçu le message
+
 	flusher.Flush()
 
 	var comments []models.Comment
@@ -248,12 +276,11 @@ func CreateComment(c *gin.Context) {
 		UserName:  user.UserName,
 		CreatedAt: comment.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
-
 	// Diffuser à tous les clients connectés pour ce post
 	broadcastComment(postID, sseComment)
 
 	// Répondre au client
-	c.JSON(http.StatusCreated, gin.H{"message": "Comment created", "comment": sseComment})
+	c.JSON(http.StatusCreated, gin.H{"comment": sseComment})
 }
 
 // Diffuser un commentaire à tous les clients connectés pour un post spécifique

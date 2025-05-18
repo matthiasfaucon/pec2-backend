@@ -17,12 +17,13 @@ func PostsRoutes(r *gin.Engine) { // Routes publiques
 	// J'ai l'impression qu'en SSE on peut pas envoyer de token dans le header
 	// Du coup middleware = useless
 	r.GET("/posts/:id/comments/sse", comment.HandleSSE)
-	r.POST("/posts/:id/comments", comment.CreateComment)
-
+	
 	// Routes protégées
 	postsRoutes := r.Group("/posts")
 	postsRoutes.Use(middleware.JWTAuth())
 	{
+		postsRoutes.POST("/:id/comments", comment.CreateComment)
+		postsRoutes.GET("/:id/comments", comment.GetCommentsByPostID)
 		postsRoutes.POST("", posts.CreatePost)
 		postsRoutes.PUT("/:id", posts.UpdatePost)
 		postsRoutes.DELETE("/:id", posts.DeletePost)
