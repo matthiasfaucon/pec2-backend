@@ -332,6 +332,8 @@ func ValidEmail(c *gin.Context) {
 		Valid: true,
 	}
 
+	user.ConfirmationCode = ""
+
 	resultSaveUser := db.DB.Save(&user)
 	if resultSaveUser.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
