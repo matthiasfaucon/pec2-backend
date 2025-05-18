@@ -10,4 +10,5 @@ func AuthRoutes(r *gin.Engine) {
 	r.POST("/register", auth.CreateUser)
 	r.POST("/login", auth.Login)
 	r.GET("/valid-email/:code", auth.ValidEmail)
+	r.GET("/resend-valid-email/:email", auth.ResendValidEmail)
 }

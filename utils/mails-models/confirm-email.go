@@ -19,8 +19,8 @@ func ConfirmEmail(email string, code string) {
 					<td style="text-align:center; padding-bottom: 30px;">Pour finaliser l'inscription, merci de valider votre email saisissant le code suivant sur l'application :</td>
 				</tr>
 				<tr>
-					<td style="text-align:center; padding-bottom: 30px;">
-						<p style="font-weight: bold; color: #722ED1; text-align:center;">%s</p>
+					<td style="text-align:center; padding-bottom: 20px;">
+						<p style="font-weight: bold; color: #722ED1; text-align:center; font-size: 30px">%s</p>
 					</td>
 				</tr>
 			</tbody>
