@@ -5,8 +5,7 @@ import (
 	"pec2-backend/utils"
 )
 
-func ConfirmEmail(email string, token string) {
-	link := "http://localhost:8080/valid-email/" + token
+func ConfirmEmail(email string, code string) {
 	subject := "Subject: Inscription à OnlyFlick \r\n"
 	mime := "MIME-version: 1.0;\r\nContent-Type: text/html; charset=\"UTF-8\";\r\n\r\n"
 	body := fmt.Sprintf(`
@@ -17,17 +16,17 @@ func ConfirmEmail(email string, token string) {
 					<td><h1 style="text-align:center">Merci d'avoir rejoint OnlyFlick</h1></td>
 				</tr>
 				<tr>
-					<td style="text-align:center; padding-bottom: 30px;">Pour finaliser l'inscription, merci de valider votre email en cliquant sur le lien ci-dessous</td>
+					<td style="text-align:center; padding-bottom: 30px;">Pour finaliser l'inscription, merci de valider votre email saisissant le code suivant sur l'application :</td>
 				</tr>
 				<tr>
-					<td style="text-align:center; padding-bottom: 30px;">
-						<a href="%s" style="background-color: #722ED1; color: #ffffff; padding:20px; border-radius: 10px; font-weight: bold;">Confirmer mon email</a>
+					<td style="text-align:center; padding-bottom: 20px;">
+						<p style="font-weight: bold; color: #722ED1; text-align:center; font-size: 30px">%s</p>
 					</td>
 				</tr>
 			</tbody>
 		</table>
 	</div>
-`, link)
+`, code)
 
 	message := []byte(subject + mime + body)
 

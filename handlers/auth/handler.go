@@ -124,6 +124,18 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
+	if err := db.DB.Where("user_name = ?", userCreate.UserName).First(&existingUser).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{
+			"error": "This username is already taken",
+		})
+		return
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Error when checking the username existence",
+		})
+		return
+	}
+
 	passwordHash, err := hashPassword(userCreate.Password)
 
 	if err != nil {
@@ -131,25 +143,30 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
+	now := time.Now()
+	code := utils.GenerateCode()
+
 	user := models.User{
-		Email:              userCreate.Email,
-		Password:           passwordHash,
-		UserName:           userCreate.UserName,
-		FirstName:          userCreate.FirstName,
-		LastName:           userCreate.LastName,
-		BirthDayDate:       userCreate.BirthDayDate,
-		Sexe:               userCreate.Sexe,
-		Role:               models.UserRole,
-		Bio:                "",
-		ProfilePicture:     "",
-		StripeCustomerId:   "",
-		SubscriptionPrice:  0,
-		Enable:             true,
-		SubscriptionEnable: true,
-		CommentsEnable:     true,
-		MessageEnable:      true,
-		EmailVerifiedAt:    sql.NullTime{Valid: false},
-		Siret:              "",
+		Email:               userCreate.Email,
+		Password:            passwordHash,
+		UserName:            userCreate.UserName,
+		FirstName:           userCreate.FirstName,
+		LastName:            userCreate.LastName,
+		BirthDayDate:        userCreate.BirthDayDate,
+		Sexe:                userCreate.Sexe,
+		Role:                models.UserRole,
+		Bio:                 "",
+		ProfilePicture:      "",
+		StripeCustomerId:    "",
+		SubscriptionPrice:   0,
+		Enable:              true,
+		SubscriptionEnable:  true,
+		CommentsEnable:      true,
+		MessageEnable:       true,
+		EmailVerifiedAt:     sql.NullTime{Valid: false},
+		Siret:               "",
+		ConfirmationCode:    code,
+		ConfirmationCodeEnd: now.Add(1 * time.Hour),
 	}
 
 	result := db.DB.Create(&user)
@@ -160,15 +177,6 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	token, err := utils.GenerateJWT(user, 1)
-
-	if err != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Error when generating JWT"})
-		return
-	}
-
-	user.TokenVerificationEmail = token
-
 	resultSaveUser := db.DB.Save(&user)
 	if resultSaveUser.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -177,7 +185,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	mailsmodels.ConfirmEmail(user.Email, token)
+	mailsmodels.ConfirmEmail(user.Email, code)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User created successfully",
 		"email":   user.Email,
@@ -282,28 +290,82 @@ func Login(c *gin.Context) {
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param token path string true "JWT Token sent in the URL"
+// @Param code path string true "user code received by mail"
 // @Success 200 {object} map[string]interface{} "message": "User validate account"
 // @Failure 400 {object} map[string]interface{} "error: User already validated account"
-// @Failure 401 {object} map[string]interface{} "error: user not found or can't decode JWT"
 // @Router /valid-email/{token} [get]
 func ValidEmail(c *gin.Context) {
-	token := c.Param("token")
+	code := c.Param("code")
 	var user models.User
 
-	claims, err := utils.DecodeJWT(token)
-	if err != nil {
+	result := db.DB.Where("confirmation_code = ?", code).First(&user)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "User not found",
+			})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Database error: " + result.Error.Error(),
+			})
+		}
+		return
+	}
+
+	if time.Now().After(user.ConfirmationCodeEnd) {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "can't decode JWT",
+			"error": "Confirmation code expired",
 		})
 		return
 	}
 
-	result := db.DB.Where("id = ?", claims["user_id"]).First(&user)
+	if user.EmailVerifiedAt.Valid {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "User already validated account",
+		})
+		return
+	}
+
+	user.EmailVerifiedAt = sql.NullTime{
+		Time:  time.Now(),
+		Valid: true,
+	}
+
+	user.ConfirmationCode = ""
+
+	resultSaveUser := db.DB.Save(&user)
+	if resultSaveUser.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": resultSaveUser.Error.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User validate account",
+	})
+}
+
+// @Summary Resend Validation email
+// @Description Resend validation email for users who loose their code or code is expired
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param email path string true "user send email for received new mail"
+// @Success 200 {object} map[string]interface{} "message": "send email at user email address"
+// @Failure 400 {object} map[string]interface{} "error: User already validated account"
+// @Failure 404 {object} map[string]interface{} "error: User not found"
+// @Router /valid-email/{token} [get]
+func ResendValidEmail(c *gin.Context) {
+	email := c.Param("email")
+
+	var user models.User
+	result := db.DB.Where("email = ?", email).First(&user)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusUnauthorized, gin.H{
+			c.JSON(http.StatusNotFound, gin.H{
 				"error": "User not found",
 			})
 		} else {
@@ -321,22 +383,22 @@ func ValidEmail(c *gin.Context) {
 		return
 	}
 
-	user.EmailVerifiedAt = sql.NullTime{
-		Time:  time.Now(),
-		Valid: true,
-	}
+	now := time.Now()
+	code := utils.GenerateCode()
 
-	resultSaveUser := db.DB.Save(&user)
-	if resultSaveUser.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": resultSaveUser.Error.Error(),
-		})
+	user.ConfirmationCode = code
+	user.ConfirmationCodeEnd = now.Add(1 * time.Hour)
+
+	if result := db.DB.Save(&user); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating user: " + result.Error.Error()})
 		return
 	}
 
+	mailsmodels.ConfirmEmail(email, code)
 	c.JSON(http.StatusOK, gin.H{
-		"message": "User validate account",
+		"message": "Resend code for user : " + user.ID,
 	})
+
 }
 
 func hashPassword(password string) (string, error) {

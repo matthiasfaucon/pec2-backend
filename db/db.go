@@ -40,6 +40,7 @@ func InitDB() {
 		&models.Comment{},
 		&models.Category{},
 		&models.ContentCreatorInfo{},
+		&models.PrivateMessage{},
 	)
 	if err != nil {
 		fmt.Println("Error migrating database:", err)

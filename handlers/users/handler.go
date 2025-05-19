@@ -144,6 +144,18 @@ func UpdateUserProfile(c *gin.Context) {
 	}
 
 	if formData.UserName != "" {
+		var existingUser models.User
+		if err := db.DB.Where("user_name = ? AND id != ?", formData.UserName, userID).First(&existingUser).Error; err == nil {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": "This username is already taken",
+			})
+			return
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Error when checking the username existence",
+			})
+			return
+		}
 		user.UserName = formData.UserName
 	}
 	if formData.Bio != "" {
@@ -439,4 +451,63 @@ func getUserCountByYear(targetYear int) ([]UserStatsResponse, error) {
 	}
 
 	return results, nil
+}
+
+// @Summary Get user role statistics (Admin)
+// @Description Get the count of users for each role (Admin access only)
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]int "Role counts"
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 500 {object} map[string]string "error: Internal server error"
+// @Router /users/stats/roles [get]
+func GetUserRoleStats(c *gin.Context) {
+	var roleCounts = make(map[string]int)
+
+	// Initialiser les compteurs à 0
+	roleCounts["ADMIN"] = 0
+	roleCounts["CONTENT_CREATOR"] = 0
+	roleCounts["USER"] = 0
+
+	for _, role := range []models.Role{models.AdminRole, models.ContentCreator, models.UserRole} {
+		var count int64
+		if err := db.DB.Model(&models.User{}).Where("role = ?", role).Count(&count).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors du comptage des utilisateurs par rôle"})
+			return
+		}
+		roleCounts[string(role)] = int(count)
+	}
+
+	c.JSON(http.StatusOK, roleCounts)
+}
+
+// @Summary Get user gender statistics (Admin)
+// @Description Get the count of users for each gender (Admin access only)
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]int "Gender counts"
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 500 {object} map[string]string "error: Internal server error"
+// @Router /users/stats/gender [get]
+func GetUserGenderStats(c *gin.Context) {
+	var genderCounts = make(map[string]int)
+
+	genderCounts["MAN"] = 0
+	genderCounts["WOMAN"] = 0
+	genderCounts["OTHER"] = 0
+
+	for _, sexe := range []models.Sexe{models.Male, models.Female, models.Other} {
+		var count int64
+		if err := db.DB.Model(&models.User{}).Where("sexe = ?", sexe).Count(&count).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors du comptage des utilisateurs par sexe"})
+			return
+		}
+		genderCounts[string(sexe)] = int(count)
+	}
+
+	c.JSON(http.StatusOK, genderCounts)
 }

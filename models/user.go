@@ -9,8 +9,8 @@ type Role string
 type Sexe string
 
 const (
-	AdminRole  Role = "ADMIN"
-	UserRole   Role = "USER"
+	AdminRole      Role = "ADMIN"
+	UserRole       Role = "USER"
 	ContentCreator Role = "CONTENT_CREATOR"
 )
 
@@ -21,29 +21,30 @@ const (
 )
 
 type User struct {
-	ID                     string       `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	Email                  string       `json:"email" binding:"required,email"`
-	Password               string       `json:"password" binding:"required,min=6"`
-	UserName               string       `json:"userName" binding:"required"`
-	FirstName              string       `json:"firstName" binding:"required"`
-	LastName               string       `json:"lastName" binding:"required"`
-	BirthDayDate           time.Time    `json:"birthDayDate" binding:"required"`
-	Sexe                   Sexe         `json:"sexe" binding:"required"`
-	Role                   Role         `json:"role"`
-	Bio                    string       `json:"bio"`
-	ProfilePicture         string       `json:"profilePicture"`
-	StripeCustomerId       string       `json:"stripeCustomerId"`
-	SubscriptionPrice      int          `json:"subscriptionPrice"`
-	Enable                 bool         `json:"enable"`
-	SubscriptionEnable     bool         `json:"subscriptionEnable"`
-	CommentsEnable         bool         `json:"commentsEnable"`
-	MessageEnable          bool         `json:"messageEnable"`
-	EmailVerifiedAt        sql.NullTime `json:"emailVerifiedAt"`
-	Siret                  string       `json:"siret"`
-	TokenVerificationEmail string       `json:"TokenVerificationEmail"`
-	CreatedAt              time.Time    `json:"createdAt"`
-	UpdatedAt              time.Time    `json:"updatedAt"`
-	DeletedAt              *time.Time   `json:"deletedAt,omitempty" gorm:"index"`
+	ID                  string       `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	Email               string       `json:"email" binding:"required,email" gorm:"uniqueIndex"`
+	Password            string       `json:"password" binding:"required,min=6"`
+	UserName            string       `json:"userName" binding:"required" gorm:"uniqueIndex"`
+	FirstName           string       `json:"firstName" binding:"required"`
+	LastName            string       `json:"lastName" binding:"required"`
+	BirthDayDate        time.Time    `json:"birthDayDate" binding:"required"`
+	Sexe                Sexe         `json:"sexe" binding:"required"`
+	Role                Role         `json:"role"`
+	Bio                 string       `json:"bio"`
+	ProfilePicture      string       `json:"profilePicture"`
+	StripeCustomerId    string       `json:"stripeCustomerId"`
+	SubscriptionPrice   int          `json:"subscriptionPrice"`
+	Enable              bool         `json:"enable"`
+	SubscriptionEnable  bool         `json:"subscriptionEnable"`
+	CommentsEnable      bool         `json:"commentsEnable"`
+	MessageEnable       bool         `json:"messageEnable"`
+	EmailVerifiedAt     sql.NullTime `json:"emailVerifiedAt"`
+	Siret               string       `json:"siret"`
+	CreatedAt           time.Time    `json:"createdAt"`
+	UpdatedAt           time.Time    `json:"updatedAt"`
+	DeletedAt           *time.Time   `json:"deletedAt,omitempty" gorm:"index"`
+	ConfirmationCode    string       `json:"confirmationCode"`
+	ConfirmationCodeEnd time.Time    `json:"ConfirmationCodeEnd"`
 }
 
 func (User) TableName() string {
