@@ -44,7 +44,16 @@ func ToggleLike(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error removing like: " + err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"message": "Like removed successfully", "action": "removed"})
+
+		// Récupérer le nombre actuel de likes pour ce post
+		var likesCount int64
+		db.DB.Model(&models.Like{}).Where("post_id = ?", postID).Count(&likesCount)
+
+		c.JSON(http.StatusOK, gin.H{
+			"message":    "Like removed successfully",
+			"action":     "removed",
+			"likesCount": likesCount,
+		})
 		return
 	}
 
@@ -59,5 +68,13 @@ func ToggleLike(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Like added successfully", "action": "added"})
+	// Récupérer le nombre actuel de likes pour ce post
+	var likesCount int64
+	db.DB.Model(&models.Like{}).Where("post_id = ?", postID).Count(&likesCount)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "Like added successfully",
+		"action":     "added",
+		"likesCount": likesCount,
+	})
 }
