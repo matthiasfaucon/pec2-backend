@@ -7,6 +7,7 @@ import (
 	"pec2-backend/db"
 	"pec2-backend/models"
 	"pec2-backend/utils"
+	mailsmodels "pec2-backend/utils/mails-models"
 	"strconv"
 	"time"
 
@@ -14,6 +15,26 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+
+// Struct pour Swagger : demande de code de réinitialisation
+// @Description Email pour demander un code de réinitialisation
+// @name PasswordResetRequest
+// @Param email body string true "Email de l'utilisateur"
+type PasswordResetRequest struct {
+	Email string `json:"email" example:"utilisateur@exemple.com"`
+}
+
+// Struct pour Swagger : confirmation de réinitialisation
+// @Description Email, code et nouveau mot de passe pour confirmer la réinitialisation
+// @name PasswordResetConfirm
+// @Param email body string true "Email de l'utilisateur"
+// @Param code body string true "Code reçu par email"
+// @Param newPassword body string true "Nouveau mot de passe"
+type PasswordResetConfirm struct {
+	Email       string `json:"email" example:"utilisateur@exemple.com"`
+	Code        string `json:"code" example:"123456"`
+	NewPassword string `json:"newPassword" example:"NouveauMotdepasse123"`
+}
 
 // @Summary Get all users (Admin)
 // @Description Retrieves a list of all users (Admin access only)
@@ -510,4 +531,93 @@ func GetUserGenderStats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, genderCounts)
+}
+
+// @Summary send a reset password code
+// @Description send a reset password code to the email if the user exists
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param data body PasswordResetRequest true "Email of the user"
+// @Success 200 {object} map[string]string "message: Code sent"
+// @Failure 404 {object} map[string]string "error: User not found"
+// @Router /users/password/reset/request [post]
+func RequestPasswordReset(c *gin.Context) {
+	var req struct {
+		Email string `json:"email" binding:"required,email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email"})
+		return
+	}
+
+	var user models.User
+	if err := db.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	code := utils.GenerateCode()
+	end := time.Now().Add(15 * time.Minute)
+
+	user.ResetPasswordCode = code
+	user.ResetPasswordCodeEnd = end
+
+	if err := db.DB.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving the user"})
+		return
+	}
+
+	// Envoi du code par email
+	mailsmodels.SendResetPasswordCode(user.Email, code)
+	c.JSON(http.StatusOK, gin.H{"message": "Code sent to the email if it exists in our database."})
+}
+
+// @Summary Reset password with a code
+// @Description Change the password if the code is correct and not expired
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param data body PasswordResetConfirm true "Email, code, new password"
+// @Success 200 {object} map[string]string "message: Password reset"
+// @Failure 400 {object} map[string]string "error: Invalid data or code incorrect/expired"
+// @Router /users/password/reset/confirm [post]
+func ConfirmPasswordReset(c *gin.Context) {
+	var req struct {
+		Email       string `json:"email" binding:"required,email"`
+		Code        string `json:"code" binding:"required"`
+		NewPassword string `json:"newPassword" binding:"required,min=6"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
+		return
+	}
+
+	var user models.User
+	if err := db.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	if user.ResetPasswordCode != req.Code || time.Now().After(user.ResetPasswordCodeEnd) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid code or expired"})
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error hashing the password"})
+		return
+	}
+
+	user.Password = string(hashedPassword)
+	user.ResetPasswordCode = ""
+	user.ResetPasswordCodeEnd = time.Time{}
+
+	if err := db.DB.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving the user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset"})
 }
