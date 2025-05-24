@@ -551,6 +551,11 @@ func RequestPasswordReset(c *gin.Context) {
 		return
 	}
 
+	if !utils.ValidateEmail(req.Email) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
+		return
+	}
+
 	var user models.User
 	if err := db.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
@@ -590,6 +595,11 @@ func ConfirmPasswordReset(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
+		return
+	}
+
+	if !utils.ValidateEmail(req.Email) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
 		return
 	}
 
