@@ -573,7 +573,6 @@ func RequestPasswordReset(c *gin.Context) {
 		return
 	}
 
-	// Envoi du code par email
 	mailsmodels.SendResetPasswordCode(user.Email, code)
 	c.JSON(http.StatusOK, gin.H{"message": "Code sent to the email if it exists in our database."})
 }
