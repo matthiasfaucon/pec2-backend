@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"time"
 )
 
 type InseeApiResponse struct {
@@ -25,8 +24,8 @@ type InseeApiResponse struct {
 var (
 	inseeApiKeyEnv = "INSEE_API_KEY"
 	inseeSiretURL  = "https://api.insee.fr/api-sirene/3.11/siret/"
-	inseeTokenURL  = "https://api.insee.fr/token"
-	tokenExpiresIn = 7 * 24 * time.Hour // 7 days
+	// inseeTokenURL  = "https://api.insee.fr/token"
+	// tokenExpiresIn = 7 * 24 * time.Hour // 7 days
 )
 
 func VerifySiret(siret string) (bool, error) {

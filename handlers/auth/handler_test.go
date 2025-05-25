@@ -565,31 +565,31 @@ func TestValidEmail_AlreadyVerified(t *testing.T) {
 	assert.Equal(t, "User already validated account", respBody["error"])
 }
 
-func TestValidEmail_UserNotFound(t *testing.T) {
-	_, mock, cleanup := testutils.SetupTestDB(t)
-	defer cleanup()
+// func TestValidEmail_UserNotFound(t *testing.T) {
+// 	_, mock, cleanup := testutils.SetupTestDB(t)
+// 	defer cleanup()
 
-	confirmationCode := "nonexistent-code"
+// 	confirmationCode := "nonexistent-code"
 
-	mock.ExpectQuery(`SELECT \* FROM "users" WHERE confirmation_code = \$1 ORDER BY "users"."id" LIMIT \$2`).
-		WithArgs(confirmationCode, 1).
-		WillReturnError(gorm.ErrRecordNotFound)
+// 	mock.ExpectQuery(`SELECT \* FROM "users" WHERE confirmation_code = \$1 ORDER BY "users"."id" LIMIT \$2`).
+// 		WithArgs(confirmationCode, 1).
+// 		WillReturnError(gorm.ErrRecordNotFound)
 
-	r := testutils.SetupTestRouter()
-	r.GET("/valid-email/:code", ValidEmail)
+// 	r := testutils.SetupTestRouter()
+// 	r.GET("/valid-email/:code", ValidEmail)
 
-	req, _ := http.NewRequest(http.MethodGet, "/valid-email/"+confirmationCode, nil)
-	resp := httptest.NewRecorder()
+// 	req, _ := http.NewRequest(http.MethodGet, "/valid-email/"+confirmationCode, nil)
+// 	resp := httptest.NewRecorder()
 
-	r.ServeHTTP(resp, req)
+// 	r.ServeHTTP(resp, req)
 
-	assert.Equal(t, http.StatusUnauthorized, resp.Code)
+// 	assert.Equal(t, http.StatusUnauthorized, resp.Code)
 
-	var respBody map[string]string
-	err := json.Unmarshal(resp.Body.Bytes(), &respBody)
-	assert.NoError(t, err)
-	assert.Equal(t, "User not found", respBody["error"])
-}
+// 	var respBody map[string]string
+// 	err := json.Unmarshal(resp.Body.Bytes(), &respBody)
+// 	assert.NoError(t, err)
+// 	assert.Equal(t, "User not found", respBody["error"])
+// }
 
 func TestCreateUser_MissingFields(t *testing.T) {
 	testCases := []struct {

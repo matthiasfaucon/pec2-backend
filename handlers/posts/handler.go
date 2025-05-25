@@ -53,12 +53,14 @@ func CreatePost(c *gin.Context) {
 
 	}
 
-	categoriesStr := c.Request.FormValue("categories")
-	var categoryIDs []string
-	if categoriesStr != "" {
-		if err := json.Unmarshal([]byte(categoriesStr), &categoryIDs); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid categories format: " + err.Error()})
-			return
+	categoryIDs := c.PostFormArray("categories")
+	if len(categoryIDs) == 0 {
+		categoriesStr := c.Request.FormValue("categories")
+		if categoriesStr != "" {
+			if err := json.Unmarshal([]byte(categoriesStr), &categoryIDs); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid categories format: " + err.Error()})
+				return
+			}
 		}
 	}
 
@@ -118,7 +120,7 @@ func CreatePost(c *gin.Context) {
 // @Produce json
 // @Param isFree query boolean false "Filter by free posts"
 // @Param category query string false "Filter by category ID"
-// @Success 200 {array} models.Post
+// @Success 200 {array} models.PostResponse
 // @Failure 500 {object} map[string]string "error: Error message"
 // @Router /posts [get]
 func GetAllPosts(c *gin.Context) {
@@ -130,6 +132,9 @@ func GetAllPosts(c *gin.Context) {
 		query = query.Where("is_free = ?", isFree == "true")
 	}
 
+	// Afficher le user qui a créé le post
+	query = query.Preload("User")
+
 	// Filtre par catégorie
 	if categoryID := c.Query("category"); categoryID != "" {
 		query = query.Joins("JOIN post_categories ON posts.id = post_categories.post_id").
@@ -140,8 +145,44 @@ func GetAllPosts(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving posts: " + err.Error()})
 		return
 	}
+	var response []models.PostResponse = make([]models.PostResponse, 0, len(posts))
+	for _, post := range posts {
+		// Compter le nombre de likes
+		var likesCount int64
+		db.DB.Model(&models.Like{}).Where("post_id = ?", post.ID).Count(&likesCount)
+		fmt.Println("Likes count for post ID", post.ID, ":", likesCount)
+		// Compter le nombre de commentaires
+		var commentsCount int64
+		db.DB.Model(&models.Comment{}).Where("post_id = ?", post.ID).Count(&commentsCount)
+		
+		// Compter le nombre de reports
+		var reportsCount int64
+		db.DB.Model(&models.Report{}).Where("post_id = ?", post.ID).Count(&reportsCount)
+		
+		// Créer la réponse pour ce post
+		postResponse := models.PostResponse{
+			ID:            post.ID,
+			Name:          post.Name,
+			PictureURL:    post.PictureURL,
+			IsFree:        post.IsFree,
+			Enable:        post.Enable,
+			Categories:    post.Categories,
+			CreatedAt:     post.CreatedAt,
+			UpdatedAt:     post.UpdatedAt,
+			User: models.UserInfo{
+				ID:             post.User.ID,
+				UserName:       post.User.UserName,
+				ProfilePicture: post.User.ProfilePicture,
+			},
+			LikesCount:    int(likesCount),
+			CommentsCount: int(commentsCount),
+			ReportsCount:  int(reportsCount),
+		}
+		
+		response = append(response, postResponse)
+	}
 
-	c.JSON(http.StatusOK, posts)
+	c.JSON(http.StatusOK, response)
 }
 
 // @Summary Get a post by ID
@@ -149,7 +190,7 @@ func GetAllPosts(c *gin.Context) {
 // @Tags posts
 // @Produce json
 // @Param id path string true "Post ID"
-// @Success 200 {object} models.Post
+// @Success 200 {object} models.PostResponse
 // @Failure 404 {object} map[string]string "error: Post not found"
 // @Failure 500 {object} map[string]string "error: Error message"
 // @Router /posts/{id} [get]
@@ -157,12 +198,44 @@ func GetPostByID(c *gin.Context) {
 	var post models.Post
 	postID := c.Param("id")
 
-	if err := db.DB.Preload("Categories").First(&post, "id = ?", postID).Error; err != nil {
+	if err := db.DB.Preload("Categories").Preload("User").First(&post, "id = ?", postID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, post)
+	// Compter le nombre de likes
+	var likesCount int64
+	db.DB.Model(&models.Like{}).Where("post_id = ?", post.ID).Count(&likesCount)
+	
+	// Compter le nombre de commentaires
+	var commentsCount int64
+	db.DB.Model(&models.Comment{}).Where("post_id = ?", post.ID).Count(&commentsCount)
+	
+	// Compter le nombre de reports
+	var reportsCount int64
+	db.DB.Model(&models.Report{}).Where("post_id = ?", post.ID).Count(&reportsCount)
+	
+	// Créer la réponse pour ce post
+	postResponse := models.PostResponse{
+		ID:            post.ID,
+		Name:          post.Name,
+		PictureURL:    post.PictureURL,
+		IsFree:        post.IsFree,
+		Enable:        post.Enable,
+		Categories:    post.Categories,
+		CreatedAt:     post.CreatedAt,
+		UpdatedAt:     post.UpdatedAt,
+		User: models.UserInfo{
+			ID:             post.User.ID,
+			UserName:       post.User.UserName,
+			ProfilePicture: post.User.ProfilePicture,
+		},
+		LikesCount:    int(likesCount),
+		CommentsCount: int(commentsCount),
+		ReportsCount:  int(reportsCount),
+	}
+
+	c.JSON(http.StatusOK, postResponse)
 }
 
 // @Summary Update a post

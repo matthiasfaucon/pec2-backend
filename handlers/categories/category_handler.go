@@ -1,6 +1,7 @@
 package categories
 
 import (
+	"fmt"
 	"net/http"
 	"pec2-backend/db"
 	"pec2-backend/models"
@@ -14,9 +15,11 @@ import (
 // @Description Create a new category with the provided information
 // @Tags categories
 // @Accept multipart/form-data
+// @Accept json
 // @Produce json
 // @Param name formData string true "Category name"
 // @Param picture formData file true "Category picture"
+// @Param body body models.CategoryCreate false "Category data (for JSON requests)"
 // @Security BearerAuth
 // @Success 201 {object} models.Category
 // @Failure 400 {object} map[string]string "error: Invalid input"
@@ -24,10 +27,48 @@ import (
 // @Failure 500 {object} map[string]string "error: Error message"
 // @Router /categories [post]
 func CreateCategory(c *gin.Context) {
+	fmt.Println("CreateCategory called")
 	var categoryCreate models.CategoryCreate
-	categoryCreate.Name = c.PostForm("name")
+	fmt.Println("categoryCreate initialized")
+	
+	contentType := c.GetHeader("Content-Type")
+	fmt.Println("contentType:", contentType)
+	
+	// Handle both JSON and form-data
+	if contentType == "application/json" {
+		fmt.Println("Handling JSON input")
+		// N'appelez c.ShouldBindJSON qu'une seule fois
+		if err := c.ShouldBindJSON(&categoryCreate); err != nil {
+			fmt.Println("Error binding JSON:", err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid JSON input: " + err.Error(),
+			})
+			return
+		}
+		fmt.Println("JSON binding successful:", categoryCreate)
+	} else {
+		// Process form data
+		fmt.Println("Handling form data")
+		categoryCreate.Name = c.PostForm("name")
+		
+		file, err := c.FormFile("picture")
+		fmt.Println("File:", file != nil, "Error:", err)
+		if err == nil && file != nil {
+			imageURL, err := utils.UploadImage(file, "category_pictures", "category")
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading picture: " + err.Error()})
+				return
+			}
+			categoryCreate.PictureURL = imageURL
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Picture is required for form data"})
+			return
+		}
+	}
 
+	// Name validation
 	if categoryCreate.Name == "" {
+		fmt.Println("Name is required")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Name is required",
 		})
@@ -37,38 +78,30 @@ func CreateCategory(c *gin.Context) {
 	var existingCategory models.Category
 	resultInCategories := db.DB.First(&existingCategory, "name = ?", categoryCreate.Name)
 	if resultInCategories.Error == nil {
+		fmt.Println("Category already exists")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Category already exists",
 		})
 		return
 	}
 
-	file, err := c.FormFile("picture")
-	if err == nil && file != nil {
-		imageURL, err := utils.UploadImage(file, "category_pictures", "category")
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading picture: " + err.Error()})
-			return
-		}
-		categoryCreate.PictureURL = imageURL
-	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Picture is required"})
-		return
-	}
-
+	// Create the category
 	category := models.Category{
 		Name:       categoryCreate.Name,
 		PictureURL: categoryCreate.PictureURL,
 	}
+	fmt.Println("Creating category:", category)
 
 	result := db.DB.Create(&category)
 	if result.Error != nil {
+		fmt.Println("Error creating category:", result.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Error creating category: " + result.Error.Error(),
 		})
 		return
 	}
 
+	fmt.Println("Category created successfully:", category)
 	c.JSON(http.StatusCreated, category)
 }
 
