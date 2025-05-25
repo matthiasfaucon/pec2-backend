@@ -28,6 +28,12 @@ jobs:
     - name: Build
       run: go build -v ./...
 
+    - name: Install Swagger
+      run: go install github.com/swaggo/swag/cmd/swag@latest
+
+    - name: Generate Swagger documentation
+      run: swag init
+
     - name: Run go vet
       run: go vet ./...
 
