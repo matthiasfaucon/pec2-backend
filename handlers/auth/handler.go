@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"database/sql"
 	"errors"
 	"net/http"
 	"pec2-backend/db"
@@ -163,7 +162,7 @@ func CreateUser(c *gin.Context) {
 		SubscriptionEnable:  true,
 		CommentsEnable:      true,
 		MessageEnable:       true,
-		EmailVerifiedAt:     sql.NullTime{Valid: false},
+		EmailVerifiedAt:     nil,
 		Siret:               "",
 		ConfirmationCode:    code,
 		ConfirmationCodeEnd: now.Add(1 * time.Hour),
@@ -266,7 +265,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	if !user.EmailVerifiedAt.Valid {
+	if user.EmailVerifiedAt == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "user don't valid email",
 		})
@@ -320,18 +319,15 @@ func ValidEmail(c *gin.Context) {
 		return
 	}
 
-	if user.EmailVerifiedAt.Valid {
+	if user.EmailVerifiedAt != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "User already validated account",
 		})
 		return
 	}
 
-	user.EmailVerifiedAt = sql.NullTime{
-		Time:  time.Now(),
-		Valid: true,
-	}
-
+	now := time.Now()
+	user.EmailVerifiedAt = &now
 	user.ConfirmationCode = ""
 
 	resultSaveUser := db.DB.Save(&user)
@@ -376,7 +372,7 @@ func ResendValidEmail(c *gin.Context) {
 		return
 	}
 
-	if user.EmailVerifiedAt.Valid {
+	if user.EmailVerifiedAt != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "User already validated account",
 		})

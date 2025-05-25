@@ -62,7 +62,8 @@
                 ],
                 "description": "Create a new category with the provided information",
                 "consumes": [
-                    "multipart/form-data"
+                    "multipart/form-data",
+                    "application/json"
                 ],
                 "produces": [
                     "application/json"
@@ -85,6 +86,14 @@
                         "name": "picture",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "description": "Category data (for JSON requests)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/models.CategoryCreate"
+                        }
                     }
                 ],
                 "responses": {
@@ -133,7 +142,7 @@
                 ],
                 "description": "Update a category with the provided information",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -151,13 +160,18 @@
                         "required": true
                     },
                     {
-                        "description": "Updated category information",
-                        "name": "category",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.CategoryCreate"
-                        }
+                        "type": "string",
+                        "description": "Category name",
+                        "name": "name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Category picture",
+                        "name": "picture",
+                        "in": "formData",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -885,6 +899,59 @@
                 }
             }
         },
+        "/insee/{siret}": {
+            "get": {
+                "description": "Get Entreprise Info",
+                "tags": [
+                    "insee"
+                ],
+                "summary": "Get Entreprise Info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Siret",
+                        "name": "siret",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/insee.EntrepriseInfo"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
                 "description": "user login with credential",
@@ -971,7 +1038,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Post"
+                                "$ref": "#/definitions/models.PostResponse"
                             }
                         }
                     },
@@ -1155,7 +1222,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Post"
+                            "$ref": "#/definitions/models.PostResponse"
                         }
                     },
                     "404": {
@@ -1346,6 +1413,158 @@
                 }
             }
         },
+        "/posts/{id}/comments": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new comment and broadcast it via SSE",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comments"
+                ],
+                "summary": "Create a new comment for a post",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "JWT Token for web clients (optional)",
+                        "name": "token",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Comment content",
+                        "name": "comment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Comment created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/{id}/comments/sse": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Connect to SSE to receive comments in real-time for a specific post",
+                "tags": [
+                    "comments"
+                ],
+                "summary": "Handle SSE connection for comments",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "JWT Token for web clients (optional)",
+                        "name": "token",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Connected to SSE",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Invalid post ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Error setting up SSE",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/posts/{id}/like": {
             "post": {
                 "security": [
@@ -1482,6 +1701,311 @@
                     },
                     "500": {
                         "description": "error: Error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/private-messages": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all messages sent and received by the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "private-messages"
+                ],
+                "summary": "Get user messages",
+                "responses": {
+                    "200": {
+                        "description": "List of messages",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.PrivateMessage"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Error retrieving messages",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Send a private message from the authenticated user to another user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "private-messages"
+                ],
+                "summary": "Create a private message",
+                "parameters": [
+                    {
+                        "description": "Message information",
+                        "name": "message",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.PrivateMessageCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created message",
+                        "schema": {
+                            "$ref": "#/definitions/models.PrivateMessage"
+                        }
+                    },
+                    "400": {
+                        "description": "error: Invalid request data",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: Receiver not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Error creating message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/private-messages/received": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all messages received by the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "private-messages"
+                ],
+                "summary": "Get received messages",
+                "responses": {
+                    "200": {
+                        "description": "List of received messages",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Error retrieving messages",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/private-messages/sent": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all messages sent by the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "private-messages"
+                ],
+                "summary": "Get sent messages",
+                "responses": {
+                    "200": {
+                        "description": "List of sent messages",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Error retrieving messages",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/private-messages/{id}/read": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mark a specific private message as read",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "private-messages"
+                ],
+                "summary": "Mark message as read",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Message ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Message marked as read",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "error: Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: Message not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Error updating message",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1672,6 +2196,98 @@
                     },
                     "500": {
                         "description": "error: Error updating password",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/password/reset/confirm": {
+            "post": {
+                "description": "Change the password if the code is correct and not expired",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Reset password with a code",
+                "parameters": [
+                    {
+                        "description": "Email, code, new password",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/users.PasswordResetConfirm"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Password reset",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Invalid data or code incorrect/expired",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/password/reset/request": {
+            "post": {
+                "description": "send a reset password code to the email if the user exists",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "send a reset password code",
+                "parameters": [
+                    {
+                        "description": "Email of the user",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/users.PasswordResetRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Code sent",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: User not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1930,9 +2546,107 @@
                 }
             }
         },
+        "/users/stats/gender": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the count of users for each gender (Admin access only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get user gender statistics (Admin)",
+                "responses": {
+                    "200": {
+                        "description": "Gender counts",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/stats/roles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the count of users for each role (Admin access only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get user role statistics (Admin)",
+                "responses": {
+                    "200": {
+                        "description": "Role counts",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/valid-email/{token}": {
             "get": {
-                "description": "After create account, user valid it email",
+                "description": "Resend validation email for users who loose their code or code is expired",
                 "consumes": [
                     "application/json"
                 ],
@@ -1942,19 +2656,19 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "Validation email",
+                "summary": "Resend Validation email",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "JWT Token sent in the URL",
-                        "name": "token",
+                        "description": "user send email for received new mail",
+                        "name": "email",
                         "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "message\": \"User validate account",
+                        "description": "message\": \"send email at user email address",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1967,8 +2681,8 @@
                             "additionalProperties": true
                         }
                     },
-                    "401": {
-                        "description": "error: user not found or can't decode JWT",
+                    "404": {
+                        "description": "error: User not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1995,6 +2709,29 @@
                     "type": "string",
                     "minLength": 6,
                     "example": "Motdepasse123"
+                }
+            }
+        },
+        "insee.EntrepriseInfo": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "company_name": {
+                    "type": "string"
+                },
+                "company_type": {
+                    "type": "string"
+                },
+                "postal_code": {
+                    "type": "string"
+                },
+                "siret": {
+                    "type": "string"
                 }
             }
         },
@@ -2241,6 +2978,21 @@
                 }
             }
         },
+        "models.MessageStatusType": {
+            "type": "string",
+            "enum": [
+                "UNREAD",
+                "READ",
+                "ARCHIVED",
+                "DELETED"
+            ],
+            "x-enum-varnames": [
+                "MessageStatusUnread",
+                "MessageStatusRead",
+                "MessageStatusArchived",
+                "MessageStatusDeleted"
+            ]
+        },
         "models.PasswordUpdate": {
             "description": "modèle pour mettre à jour le mot de passe d'un utilisateur",
             "type": "object",
@@ -2308,7 +3060,102 @@
                 "updatedAt": {
                     "type": "string"
                 },
+                "user": {
+                    "$ref": "#/definitions/models.User"
+                },
                 "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.PostResponse": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Category"
+                    }
+                },
+                "commentsCount": {
+                    "type": "integer"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "enable": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isFree": {
+                    "type": "boolean"
+                },
+                "likesCount": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pictureUrl": {
+                    "type": "string"
+                },
+                "reportsCount": {
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.UserInfo"
+                }
+            }
+        },
+        "models.PrivateMessage": {
+            "type": "object",
+            "required": [
+                "content"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "receiverId": {
+                    "type": "string"
+                },
+                "senderId": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/models.MessageStatusType"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.PrivateMessageCreate": {
+            "description": "model for creating a private message",
+            "type": "object",
+            "required": [
+                "content",
+                "receiverUserName"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "receiverUserName": {
                     "type": "string"
                 }
             }
@@ -2369,6 +3216,19 @@
                 "ILLEGAL_CONTENT"
             ]
         },
+        "models.Role": {
+            "type": "string",
+            "enum": [
+                "ADMIN",
+                "USER",
+                "CONTENT_CREATOR"
+            ],
+            "x-enum-varnames": [
+                "AdminRole",
+                "UserRole",
+                "ContentCreator"
+            ]
+        },
         "models.Sexe": {
             "type": "string",
             "enum": [
@@ -2396,6 +3256,99 @@
                 "StatusClosed",
                 "StatusRejected"
             ]
+        },
+        "models.User": {
+            "type": "object",
+            "required": [
+                "birthDayDate",
+                "email",
+                "firstName",
+                "lastName",
+                "password",
+                "sexe",
+                "userName"
+            ],
+            "properties": {
+                "ConfirmationCodeEnd": {
+                    "type": "string"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "birthDayDate": {
+                    "type": "string"
+                },
+                "commentsEnable": {
+                    "type": "boolean"
+                },
+                "confirmationCode": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "emailVerifiedAt": {
+                    "type": "string"
+                },
+                "enable": {
+                    "type": "boolean"
+                },
+                "firstName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "messageEnable": {
+                    "type": "boolean"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "profilePicture": {
+                    "type": "string"
+                },
+                "resetPasswordCode": {
+                    "type": "string"
+                },
+                "resetPasswordCodeEnd": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/models.Role"
+                },
+                "sexe": {
+                    "$ref": "#/definitions/models.Sexe"
+                },
+                "siret": {
+                    "type": "string"
+                },
+                "stripeCustomerId": {
+                    "type": "string"
+                },
+                "subscriptionEnable": {
+                    "type": "boolean"
+                },
+                "subscriptionPrice": {
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "userName": {
+                    "type": "string"
+                }
+            }
         },
         "models.UserCreate": {
             "description": "model for create a user",
@@ -2442,6 +3395,48 @@
                 "userName": {
                     "type": "string",
                     "example": "utilisateur123"
+                }
+            }
+        },
+        "models.UserInfo": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "profilePicture": {
+                    "type": "string"
+                },
+                "userName": {
+                    "type": "string"
+                }
+            }
+        },
+        "users.PasswordResetConfirm": {
+            "description": "Email, code et nouveau mot de passe pour confirmer la réinitialisation",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "123456"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "utilisateur@exemple.com"
+                },
+                "newPassword": {
+                    "type": "string",
+                    "example": "NouveauMotdepasse123"
+                }
+            }
+        },
+        "users.PasswordResetRequest": {
+            "description": "Email pour demander un code de réinitialisation",
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "utilisateur@exemple.com"
                 }
             }
         },

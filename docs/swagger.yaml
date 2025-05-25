@@ -14,6 +14,21 @@ definitions:
     - email
     - password
     type: object
+  insee.EntrepriseInfo:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      company_name:
+        type: string
+      company_type:
+        type: string
+      postal_code:
+        type: string
+      siret:
+        type: string
+    type: object
   models.Category:
     properties:
       createdAt:
@@ -181,6 +196,18 @@ definitions:
       userId:
         type: string
     type: object
+  models.MessageStatusType:
+    enum:
+    - UNREAD
+    - READ
+    - ARCHIVED
+    - DELETED
+    type: string
+    x-enum-varnames:
+    - MessageStatusUnread
+    - MessageStatusRead
+    - MessageStatusArchived
+    - MessageStatusDeleted
   models.PasswordUpdate:
     description: modèle pour mettre à jour le mot de passe d'un utilisateur
     properties:
@@ -225,10 +252,73 @@ definitions:
         type: array
       updatedAt:
         type: string
+      user:
+        $ref: '#/definitions/models.User'
       userId:
         type: string
     required:
     - name
+    type: object
+  models.PostResponse:
+    properties:
+      categories:
+        items:
+          $ref: '#/definitions/models.Category'
+        type: array
+      commentsCount:
+        type: integer
+      createdAt:
+        type: string
+      enable:
+        type: boolean
+      id:
+        type: string
+      isFree:
+        type: boolean
+      likesCount:
+        type: integer
+      name:
+        type: string
+      pictureUrl:
+        type: string
+      reportsCount:
+        type: integer
+      updatedAt:
+        type: string
+      user:
+        $ref: '#/definitions/models.UserInfo'
+    type: object
+  models.PrivateMessage:
+    properties:
+      content:
+        type: string
+      createdAt:
+        type: string
+      deletedAt:
+        type: string
+      id:
+        type: string
+      receiverId:
+        type: string
+      senderId:
+        type: string
+      status:
+        $ref: '#/definitions/models.MessageStatusType'
+      updatedAt:
+        type: string
+    required:
+    - content
+    type: object
+  models.PrivateMessageCreate:
+    description: model for creating a private message
+    properties:
+      content:
+        type: string
+      receiverUserName:
+        type: string
+    required:
+    - content
+    - receiverUserName
     type: object
   models.Report:
     properties:
@@ -272,6 +362,16 @@ definitions:
     - SCAM
     - MISINFORMATION
     - ILLEGAL_CONTENT
+  models.Role:
+    enum:
+    - ADMIN
+    - USER
+    - CONTENT_CREATOR
+    type: string
+    x-enum-varnames:
+    - AdminRole
+    - UserRole
+    - ContentCreator
   models.Sexe:
     enum:
     - MAN
@@ -294,6 +394,70 @@ definitions:
     - StatusProcessing
     - StatusClosed
     - StatusRejected
+  models.User:
+    properties:
+      ConfirmationCodeEnd:
+        type: string
+      bio:
+        type: string
+      birthDayDate:
+        type: string
+      commentsEnable:
+        type: boolean
+      confirmationCode:
+        type: string
+      createdAt:
+        type: string
+      deletedAt:
+        type: string
+      email:
+        type: string
+      emailVerifiedAt:
+        type: string
+      enable:
+        type: boolean
+      firstName:
+        type: string
+      id:
+        type: string
+      lastName:
+        type: string
+      messageEnable:
+        type: boolean
+      password:
+        minLength: 6
+        type: string
+      profilePicture:
+        type: string
+      resetPasswordCode:
+        type: string
+      resetPasswordCodeEnd:
+        type: string
+      role:
+        $ref: '#/definitions/models.Role'
+      sexe:
+        $ref: '#/definitions/models.Sexe'
+      siret:
+        type: string
+      stripeCustomerId:
+        type: string
+      subscriptionEnable:
+        type: boolean
+      subscriptionPrice:
+        type: integer
+      updatedAt:
+        type: string
+      userName:
+        type: string
+    required:
+    - birthDayDate
+    - email
+    - firstName
+    - lastName
+    - password
+    - sexe
+    - userName
+    type: object
   models.UserCreate:
     description: model for create a user
     properties:
@@ -328,6 +492,35 @@ definitions:
     - password
     - sexe
     - userName
+    type: object
+  models.UserInfo:
+    properties:
+      id:
+        type: string
+      profilePicture:
+        type: string
+      userName:
+        type: string
+    type: object
+  users.PasswordResetConfirm:
+    description: Email, code et nouveau mot de passe pour confirmer la réinitialisation
+    properties:
+      code:
+        example: "123456"
+        type: string
+      email:
+        example: utilisateur@exemple.com
+        type: string
+      newPassword:
+        example: NouveauMotdepasse123
+        type: string
+    type: object
+  users.PasswordResetRequest:
+    description: Email pour demander un code de réinitialisation
+    properties:
+      email:
+        example: utilisateur@exemple.com
+        type: string
     type: object
   users.UserStatsResponse:
     properties:
@@ -377,6 +570,7 @@ paths:
     post:
       consumes:
       - multipart/form-data
+      - application/json
       description: Create a new category with the provided information
       parameters:
       - description: Category name
@@ -389,6 +583,11 @@ paths:
         name: picture
         required: true
         type: file
+      - description: Category data (for JSON requests)
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/models.CategoryCreate'
       produces:
       - application/json
       responses:
@@ -462,7 +661,7 @@ paths:
       - categories
     put:
       consumes:
-      - application/json
+      - multipart/form-data
       description: Update a category with the provided information
       parameters:
       - description: Category ID
@@ -470,12 +669,16 @@ paths:
         name: id
         required: true
         type: string
-      - description: Updated category information
-        in: body
-        name: category
+      - description: Category name
+        in: formData
+        name: name
         required: true
-        schema:
-          $ref: '#/definitions/models.CategoryCreate'
+        type: string
+      - description: Category picture
+        in: formData
+        name: picture
+        required: true
+        type: file
       produces:
       - application/json
       responses:
@@ -933,6 +1136,41 @@ paths:
       summary: Get all content creator applications (Admin)
       tags:
       - content-creators
+  /insee/{siret}:
+    get:
+      description: Get Entreprise Info
+      parameters:
+      - description: Siret
+        in: path
+        name: siret
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/insee.EntrepriseInfo'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get Entreprise Info
+      tags:
+      - insee
   /login:
     post:
       consumes:
@@ -990,7 +1228,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.Post'
+              $ref: '#/definitions/models.PostResponse'
             type: array
         "500":
           description: 'error: Error message'
@@ -1115,7 +1353,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Post'
+            $ref: '#/definitions/models.PostResponse'
         "404":
           description: 'error: Post not found'
           schema:
@@ -1200,6 +1438,105 @@ paths:
       summary: Update a post
       tags:
       - posts
+  /posts/{id}/comments:
+    post:
+      consumes:
+      - application/json
+      description: Create a new comment and broadcast it via SSE
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: JWT Token for web clients (optional)
+        in: query
+        name: token
+        type: string
+      - description: Comment content
+        in: body
+        name: comment
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Comment created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Invalid request'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Server error'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new comment for a post
+      tags:
+      - comments
+  /posts/{id}/comments/sse:
+    get:
+      description: Connect to SSE to receive comments in real-time for a specific
+        post
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: JWT Token for web clients (optional)
+        in: query
+        name: token
+        type: string
+      responses:
+        "200":
+          description: Connected to SSE
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Invalid post ID'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error setting up SSE'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Handle SSE connection for comments
+      tags:
+      - comments
   /posts/{id}/like:
     post:
       description: Add or remove a like on a post
@@ -1329,6 +1666,201 @@ paths:
       summary: Get all reports (Admin only)
       tags:
       - admin
+  /private-messages:
+    get:
+      consumes:
+      - application/json
+      description: Get all messages sent and received by the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of messages
+          schema:
+            items:
+              $ref: '#/definitions/models.PrivateMessage'
+            type: array
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error retrieving messages'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user messages
+      tags:
+      - private-messages
+    post:
+      consumes:
+      - application/json
+      description: Send a private message from the authenticated user to another user
+      parameters:
+      - description: Message information
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/models.PrivateMessageCreate'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created message
+          schema:
+            $ref: '#/definitions/models.PrivateMessage'
+        "400":
+          description: 'error: Invalid request data'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Receiver not found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error creating message'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a private message
+      tags:
+      - private-messages
+  /private-messages/{id}/read:
+    patch:
+      consumes:
+      - application/json
+      description: Mark a specific private message as read
+      parameters:
+      - description: Message ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Message marked as read'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Bad request'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Forbidden'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Message not found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error updating message'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Mark message as read
+      tags:
+      - private-messages
+  /private-messages/received:
+    get:
+      consumes:
+      - application/json
+      description: Get all messages received by the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of received messages
+          schema:
+            items:
+              type: object
+            type: array
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error retrieving messages'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get received messages
+      tags:
+      - private-messages
+  /private-messages/sent:
+    get:
+      consumes:
+      - application/json
+      description: Get all messages sent by the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of sent messages
+          schema:
+            items:
+              type: object
+            type: array
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error retrieving messages'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get sent messages
+      tags:
+      - private-messages
   /register:
     post:
       consumes:
@@ -1452,6 +1984,66 @@ paths:
       security:
       - BearerAuth: []
       summary: Update user password
+      tags:
+      - users
+  /users/password/reset/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Change the password if the code is correct and not expired
+      parameters:
+      - description: Email, code, new password
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/users.PasswordResetConfirm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Password reset'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: Invalid data or code incorrect/expired'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Reset password with a code
+      tags:
+      - users
+  /users/password/reset/request:
+    post:
+      consumes:
+      - application/json
+      description: send a reset password code to the email if the user exists
+      parameters:
+      - description: Email of the user
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/users.PasswordResetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Code sent'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: User not found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: send a reset password code
       tags:
       - users
   /users/profile:
@@ -1617,22 +2209,85 @@ paths:
       summary: Get user statistics (Admin)
       tags:
       - users
+  /users/stats/gender:
+    get:
+      consumes:
+      - application/json
+      description: Get the count of users for each gender (Admin access only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Gender counts
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Internal server error'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user gender statistics (Admin)
+      tags:
+      - users
+  /users/stats/roles:
+    get:
+      consumes:
+      - application/json
+      description: Get the count of users for each role (Admin access only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role counts
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Internal server error'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user role statistics (Admin)
+      tags:
+      - users
   /valid-email/{token}:
     get:
       consumes:
       - application/json
-      description: After create account, user valid it email
+      description: Resend validation email for users who loose their code or code
+        is expired
       parameters:
-      - description: JWT Token sent in the URL
+      - description: user send email for received new mail
         in: path
-        name: token
+        name: email
         required: true
         type: string
       produces:
       - application/json
       responses:
         "200":
-          description: 'message": "User validate account'
+          description: 'message": "send email at user email address'
           schema:
             additionalProperties: true
             type: object
@@ -1641,12 +2296,12 @@ paths:
           schema:
             additionalProperties: true
             type: object
-        "401":
-          description: 'error: user not found or can''t decode JWT'
+        "404":
+          description: 'error: User not found'
           schema:
             additionalProperties: true
             type: object
-      summary: Validation email
+      summary: Resend Validation email
       tags:
       - auth
 securityDefinitions:
