@@ -22,33 +22,34 @@ import (
 // @name Authorization
 // @description Entrez le JWT avec le préfixe Bearer: Bearer <JWT>
 func main() {
-    
-    gin.SetMode(gin.ReleaseMode)
 
-    // Initialiser la base de données
-    db.InitDB()
+	gin.SetMode(gin.ReleaseMode)
 
-    // Initialiser Cloudinary
-    if err := utils.InitCloudinary(); err != nil {
-        log.Printf("Error while initializing Cloudinary: %v", err)
-        log.Println("The image upload will not work correctly.")
-    }
+	// Initialiser la base de données
+	db.InitDB()
 
-    // Récupérer les variables d'environnement
-    baseURL := os.Getenv("BASE_URL")
-    if baseURL == "" {
-        baseURL = "http://localhost"
-    }
-    port := os.Getenv("PORT")
-    if port == "" {
-        port = "8080"
-    }
+	// Initialiser Cloudinary
+	if err := utils.InitCloudinary(); err != nil {
+		log.Printf("Error while initializing Cloudinary: %v", err)
+		log.Println("The image upload will not work correctly.")
+	}
 
-    docs.SwaggerInfo.Host = "localhost:" + port
+	// Récupérer les variables d'environnement
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost"
+	}
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 
-    r := routes.SetupRouter()
-    
-    if err := r.Run(baseURL + ":" + port); err != nil {
-        log.Fatal("Error while starting the server:", err)
-    }
+	docs.SwaggerInfo.Host = "localhost:" + port
+
+	log.Printf("Server is running on port %s\n", port)
+	r := routes.SetupRouter()
+
+	if err := r.Run(baseURL + ":" + port); err != nil {
+		log.Fatal("Error while starting the server:", err)
+	}
 }

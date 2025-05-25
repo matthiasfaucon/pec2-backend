@@ -13,6 +13,9 @@ func UsersRoutes(r *gin.Engine) {
 	//r.GET("/users/:id", users.GetUserByID)
 
 	userRoutes := r.Group("/users")
+	userRoutes.POST("/password/reset/request", users.RequestPasswordReset)
+	userRoutes.POST("/password/reset/confirm", users.ConfirmPasswordReset)
+
 	userRoutes.Use(middleware.JWTAuth())
 	{
 		// Routes accessibles uniquement aux administrateurs
