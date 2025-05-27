@@ -37,7 +37,11 @@ func LogSuccess(message string) {
 }
 
 func LogError(err error, message string) {
-	Logger.WithField("function", getCaller()).WithField("status", "error").WithField("error", err.Error()).Error(message)
+	entry := Logger.WithField("function", getCaller()).WithField("status", "error")
+	if err != nil {
+		entry = entry.WithField("error", err.Error())
+	}
+	entry.Error(message)
 }
 
 func getCaller() string {
