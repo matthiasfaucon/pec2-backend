@@ -1,13 +1,5 @@
-{"function":"pec2-backend/handlers/auth.Login","level":"info","msg":"User login successfully in Login","status":"success","time":"2025-05-27T10:29:46+02:00"}
-{"function":"pec2-backend/handlers/users.GetAllUsers","level":"info","msg":"List of users retrieved successfully in GetAllUsers","status":"success","time":"2025-05-27T10:30:11+02:00"}
-{"function":"pec2-backend/handlers/users.GetUserProfile","level":"info","msg":"User profile retrieved successfully in GetUserProfile","status":"success","time":"2025-05-27T10:30:21+02:00"}
-{"function":"pec2-backend/handlers/users.GetUserGenderStats","level":"info","msg":"User gender statistics retrieved successfully in GetUserGenderStats","status":"success","time":"2025-05-27T10:30:34+02:00"}
-{"function":"pec2-backend/handlers/users.GetUserRoleStats","level":"info","msg":"User role statistics retrieved successfully in GetUserRoleStats","status":"success","time":"2025-05-27T10:30:40+02:00"}
-{"function":"pec2-backend/handlers/users.UpdateUserProfile","level":"info","msg":"User profile updated successfully in UpdateUserProfile","status":"success","time":"2025-05-27T10:30:53+02:00"}
-{"error":"email déjà utilisé","function":"pec2-backend/handlers/auth.CreateUser","level":"error","msg":"Email already used in CreateUser","status":"error","time":"2025-05-27T10:31:47+02:00"}
-{"function":"main.main","level":"info","msg":"Le serveur fonctionne sur le port 8080","status":"success","time":"2025-05-27T10:35:02+02:00"}
-{"function":"pec2-backend/handlers/contacts.CreateContact","level":"info","msg":"Contact request created successfully in CreateContact","status":"success","time":"2025-05-27T10:35:44+02:00"}
-{"function":"pec2-backend/handlers/auth.Login","level":"info","msg":"User login successfully in Login","status":"success","time":"2025-05-27T10:36:14+02:00"}
-{"function":"pec2-backend/handlers/auth.Login","level":"info","msg":"User login successfully in Login","status":"success","time":"2025-05-27T10:37:02+02:00"}
-{"function":"pec2-backend/handlers/contacts.GetAllContacts","level":"info","msg":"List of contacts retrieved successfully in GetAllContacts","status":"success","time":"2025-05-27T10:39:09+02:00"}
-{"function":"pec2-backend/handlers/contacts.UpdateContactStatus","level":"info","msg":"Contact status updated successfully in UpdateContactStatus","status":"success","time":"2025-05-27T10:39:45+02:00"}
+{"function":"pec2-backend/handlers/auth.Login","level":"info","msg":"User login successfully in Login","status":"success","time":"2025-05-27T10:54:58+02:00"}
+{"function":"pec2-backend/handlers/categories.GetAllCategories","level":"info","msg":"List of categories retrieved successfully in GetAllCategories","status":"success","time":"2025-05-27T10:55:52+02:00"}
+{"function":"pec2-backend/handlers/categories.CreateCategory","level":"info","msg":"Category created successfully in CreateCategory","status":"success","time":"2025-05-27T10:56:18+02:00"}
+{"function":"pec2-backend/handlers/categories.UpdateCategory","level":"info","msg":"Category updated successfully in UpdateCategory","status":"success","time":"2025-05-27T10:57:02+02:00"}
+{"function":"pec2-backend/handlers/categories.DeleteCategory","level":"info","msg":"Category deleted successfully in DeleteCategory","status":"success","time":"2025-05-27T10:57:20+02:00"}
