@@ -1,5 +1,1 @@
-{"function":"pec2-backend/handlers/auth.Login","level":"info","msg":"User login successfully in Login","status":"success","time":"2025-05-27T10:54:58+02:00"}
-{"function":"pec2-backend/handlers/categories.GetAllCategories","level":"info","msg":"List of categories retrieved successfully in GetAllCategories","status":"success","time":"2025-05-27T10:55:52+02:00"}
-{"function":"pec2-backend/handlers/categories.CreateCategory","level":"info","msg":"Category created successfully in CreateCategory","status":"success","time":"2025-05-27T10:56:18+02:00"}
-{"function":"pec2-backend/handlers/categories.UpdateCategory","level":"info","msg":"Category updated successfully in UpdateCategory","status":"success","time":"2025-05-27T10:57:02+02:00"}
-{"function":"pec2-backend/handlers/categories.DeleteCategory","level":"info","msg":"Category deleted successfully in DeleteCategory","status":"success","time":"2025-05-27T10:57:20+02:00"}
+{"function":"pec2-backend/handlers/insee.GetEntrepriseInfo","level":"info","msg":"INSEE informations retrieved successfully in GetEntrepriseInfo","status":"success","time":"2025-05-27T11:03:54+02:00"}
