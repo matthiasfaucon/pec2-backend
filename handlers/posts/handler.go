@@ -31,12 +31,14 @@ import (
 func CreatePost(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(nil, "User not found in token in CreatePost")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in token"})
 		return
 	}
 
 	name := c.Request.FormValue("name")
 	if name == "" {
+		utils.LogError(nil, "Name is required in CreatePost")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
 		return
 	}
@@ -58,6 +60,7 @@ func CreatePost(c *gin.Context) {
 		categoriesStr := c.Request.FormValue("categories")
 		if categoriesStr != "" {
 			if err := json.Unmarshal([]byte(categoriesStr), &categoryIDs); err != nil {
+				utils.LogError(err, "Invalid categories format in CreatePost")
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid categories format: " + err.Error()})
 				return
 			}
@@ -75,11 +78,13 @@ func CreatePost(c *gin.Context) {
 	if err == nil && file != nil {
 		imageURL, err := utils.UploadImage(file, "post_pictures", "post")
 		if err != nil {
+			utils.LogError(err, "Error uploading picture in CreatePost")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading picture: " + err.Error()})
 			return
 		}
 		post.PictureURL = imageURL
 	} else {
+		utils.LogError(nil, "Picture is required in CreatePost")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Picture is required"})
 		return
 	}
@@ -87,11 +92,13 @@ func CreatePost(c *gin.Context) {
 	if len(categoryIDs) > 0 {
 		var categories []models.Category
 		if err := db.DB.Where("id IN ?", categoryIDs).Find(&categories).Error; err != nil {
+			utils.LogError(err, "Error finding categories in CreatePost")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error finding categories: " + err.Error()})
 			return
 		}
 
 		if len(categories) == 0 {
+			utils.LogError(nil, "No valid categories found in CreatePost")
 			c.JSON(http.StatusBadRequest, gin.H{"error": "No valid categories found"})
 			return
 		}
@@ -100,17 +107,20 @@ func CreatePost(c *gin.Context) {
 	}
 
 	if err := db.DB.Create(&post).Error; err != nil {
+		utils.LogError(err, "Error creating post in CreatePost")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating post: " + err.Error()})
 		return
 	}
 
 	//! C'est à moitié useless, mais c'est pour renvoyer les catégories sinon je les voient pas dans la réponse
 	if err := db.DB.Preload("Categories").Where("id = ?", post.ID).First(&post).Error; err != nil {
+		utils.LogError(err, "Error retrieving created post in CreatePost")
 		fmt.Println("Error retrieving created post:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving created post: " + err.Error()})
 		return
 	}
 
+	utils.LogSuccess("Post created successfully in CreatePost")
 	c.JSON(http.StatusCreated, post)
 }
 
@@ -142,6 +152,7 @@ func GetAllPosts(c *gin.Context) {
 	}
 
 	if err := query.Find(&posts).Error; err != nil {
+		utils.LogError(err, "Error retrieving posts in GetAllPosts")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving posts: " + err.Error()})
 		return
 	}
@@ -154,11 +165,11 @@ func GetAllPosts(c *gin.Context) {
 		// Compter le nombre de commentaires
 		var commentsCount int64
 		db.DB.Model(&models.Comment{}).Where("post_id = ?", post.ID).Count(&commentsCount)
-		
+
 		// Compter le nombre de reports
 		var reportsCount int64
 		db.DB.Model(&models.Report{}).Where("post_id = ?", post.ID).Count(&reportsCount)
-		
+
 		// Créer la réponse pour ce post
 		postResponse := models.PostResponse{
 			ID:            post.ID,
@@ -178,10 +189,11 @@ func GetAllPosts(c *gin.Context) {
 			CommentsCount: int(commentsCount),
 			ReportsCount:  int(reportsCount),
 		}
-		
+
 		response = append(response, postResponse)
 	}
 
+	utils.LogSuccess("Posts retrieved successfully in GetAllPosts")
 	c.JSON(http.StatusOK, response)
 }
 
@@ -199,6 +211,7 @@ func GetPostByID(c *gin.Context) {
 	postID := c.Param("id")
 
 	if err := db.DB.Preload("Categories").Preload("User").First(&post, "id = ?", postID).Error; err != nil {
+		utils.LogError(err, "Post not found in GetPostByID")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
 		return
 	}
@@ -206,15 +219,15 @@ func GetPostByID(c *gin.Context) {
 	// Compter le nombre de likes
 	var likesCount int64
 	db.DB.Model(&models.Like{}).Where("post_id = ?", post.ID).Count(&likesCount)
-	
+
 	// Compter le nombre de commentaires
 	var commentsCount int64
 	db.DB.Model(&models.Comment{}).Where("post_id = ?", post.ID).Count(&commentsCount)
-	
+
 	// Compter le nombre de reports
 	var reportsCount int64
 	db.DB.Model(&models.Report{}).Where("post_id = ?", post.ID).Count(&reportsCount)
-	
+
 	// Créer la réponse pour ce post
 	postResponse := models.PostResponse{
 		ID:            post.ID,
@@ -235,6 +248,7 @@ func GetPostByID(c *gin.Context) {
 		ReportsCount:  int(reportsCount),
 	}
 
+	utils.LogSuccess("Post retrieved successfully in GetPostByID")
 	c.JSON(http.StatusOK, postResponse)
 }
 
@@ -259,6 +273,7 @@ func GetPostByID(c *gin.Context) {
 func UpdatePost(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(nil, "User not found in token in UpdatePost")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in token"})
 		return
 	}
@@ -267,6 +282,7 @@ func UpdatePost(c *gin.Context) {
 	postID := c.Param("id")
 
 	if err := db.DB.Preload("Categories").First(&post, "id = ?", postID).Error; err != nil {
+		utils.LogError(err, "Post not found in UpdatePost")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
 		return
 	}
@@ -274,6 +290,7 @@ func UpdatePost(c *gin.Context) {
 	// Vérifier que l'utilisateur est propriétaire du post ou admin
 	userRole, _ := c.Get("user_role")
 	if post.UserID != userID.(string) && userRole.(string) != string(models.AdminRole) {
+		utils.LogError(nil, "Not authorized to update this post in UpdatePost")
 		c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to update this post"})
 		return
 	}
@@ -303,6 +320,7 @@ func UpdatePost(c *gin.Context) {
 
 		imageURL, err := utils.UploadImage(file, "post_pictures", "post")
 		if err != nil {
+			utils.LogError(err, "Error uploading picture in UpdatePost")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading picture: " + err.Error()})
 			return
 		}
@@ -313,12 +331,14 @@ func UpdatePost(c *gin.Context) {
 		categoryIDs := strings.Split(categoriesStr, ",")
 		var categories []models.Category
 		if err := db.DB.Where("id IN ?", categoryIDs).Find(&categories).Error; err != nil {
+			utils.LogError(err, "Error finding categories in UpdatePost")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error finding categories: " + err.Error()})
 			return
 		}
 
 		if len(categories) > 0 {
 			if err := db.DB.Model(&post).Association("Categories").Replace(&categories); err != nil {
+				utils.LogError(err, "Error updating categories in UpdatePost")
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating categories: " + err.Error()})
 				return
 			}
@@ -326,15 +346,18 @@ func UpdatePost(c *gin.Context) {
 	}
 
 	if err := db.DB.Save(&post).Error; err != nil {
+		utils.LogError(err, "Error updating post in UpdatePost")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating post: " + err.Error()})
 		return
 	}
 
 	if err := db.DB.Preload("Categories").First(&post, "id = ?", post.ID).Error; err != nil {
+		utils.LogError(err, "Error retrieving updated post in UpdatePost")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving updated post: " + err.Error()})
 		return
 	}
 
+	utils.LogSuccess("Post updated successfully in UpdatePost")
 	c.JSON(http.StatusOK, post)
 }
 
@@ -352,6 +375,7 @@ func UpdatePost(c *gin.Context) {
 func DeletePost(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(nil, "User not found in token in DeletePost")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in token"})
 		return
 	}
@@ -360,6 +384,7 @@ func DeletePost(c *gin.Context) {
 	postID := c.Param("id")
 
 	if err := db.DB.First(&post, "id = ?", postID).Error; err != nil {
+		utils.LogError(err, "Post not found in DeletePost")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
 		return
 	}
@@ -367,6 +392,7 @@ func DeletePost(c *gin.Context) {
 	// Vérifier que l'utilisateur est propriétaire du post ou admin
 	userRole, _ := c.Get("user_role")
 	if post.UserID != userID.(string) && userRole.(string) != string(models.AdminRole) {
+		utils.LogError(nil, "Not authorized to delete this post in DeletePost")
 		c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to delete this post"})
 		return
 	}
@@ -376,14 +402,17 @@ func DeletePost(c *gin.Context) {
 	}
 
 	if err := db.DB.Model(&post).Association("Categories").Clear(); err != nil {
+		utils.LogError(err, "Error removing post categories in DeletePost")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error removing post categories: " + err.Error()})
 		return
 	}
 
 	if err := db.DB.Delete(&post).Error; err != nil {
+		utils.LogError(err, "Error deleting post in DeletePost")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error deleting post: " + err.Error()})
 		return
 	}
 
+	utils.LogSuccess("Post deleted successfully in DeletePost")
 	c.JSON(http.StatusOK, gin.H{"message": "Post deleted successfully"})
 }

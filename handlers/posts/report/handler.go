@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"pec2-backend/db"
 	"pec2-backend/models"
+	"pec2-backend/utils"
 
 	"slices"
 
@@ -27,6 +28,7 @@ import (
 func ReportPost(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(nil, "User not found in token in ReportPost")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in token"})
 		return
 	}
@@ -36,11 +38,13 @@ func ReportPost(c *gin.Context) {
 	// Vérifier si le post existe
 	var post models.Post
 	if err := db.DB.First(&post, "id = ?", postID).Error; err != nil {
+		utils.LogError(err, "Post not found in ReportPost")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
 		return
 	}
 	var reportCreate models.ReportCreate
 	if err := c.ShouldBindJSON(&reportCreate); err != nil {
+		utils.LogError(err, "Invalid input in ReportPost")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
 		return
 	}
@@ -58,6 +62,7 @@ func ReportPost(c *gin.Context) {
 	}
 
 	if !isValidReason {
+		utils.LogError(nil, "Invalid report reason in ReportPost")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid report reason"})
 		return
 	}
@@ -65,6 +70,7 @@ func ReportPost(c *gin.Context) {
 	// Vérifier si l'utilisateur a déjà signalé ce post
 	var existingReport models.Report
 	if err := db.DB.Where("post_id = ? AND reported_by = ?", postID, userID).First(&existingReport).Error; err == nil {
+		utils.LogError(nil, "Already reported in ReportPost")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "You have already reported this post"})
 		return
 	}
@@ -75,10 +81,12 @@ func ReportPost(c *gin.Context) {
 	}
 
 	if err := db.DB.Create(&report).Error; err != nil {
+		utils.LogError(err, "Error creating report in ReportPost")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating report: " + err.Error()})
 		return
 	}
 
+	utils.LogSuccess("Report successfully created in ReportPost")
 	c.JSON(http.StatusCreated, report)
 }
 
@@ -96,9 +104,11 @@ func GetAllReports(c *gin.Context) {
 	var reports []models.Report
 
 	if err := db.DB.Order("created_at DESC").Find(&reports).Error; err != nil {
+		utils.LogError(err, "Error retrieving reports in GetAllReports")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving reports: " + err.Error()})
 		return
 	}
 
+	utils.LogSuccess("Reports successfully retrieved in GetAllReports")
 	c.JSON(http.StatusOK, reports)
 }
