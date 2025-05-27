@@ -52,6 +52,7 @@ func GetAllUsers(c *gin.Context) {
 	result := db.DB.Order("created_at DESC").Find(&users)
 
 	if result.Error != nil {
+		utils.LogError(result.Error, "Error when retrieving all users in GetAllUsers")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
 		return
 	}
@@ -60,6 +61,11 @@ func GetAllUsers(c *gin.Context) {
 		users[i].Password = ""
 	}
 
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "List of users retrieved successfully in GetAllUsers")
 	c.JSON(http.StatusOK, users)
 }
 
@@ -79,49 +85,57 @@ func GetAllUsers(c *gin.Context) {
 func UpdatePassword(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(errors.New("user_id manquant"), "User not found dans UpdatePassword")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
 		return
 	}
 
 	var passwordUpdate models.PasswordUpdate
 	if err := c.ShouldBindJSON(&passwordUpdate); err != nil {
+		utils.LogError(err, "Error when binding JSON in UpdatePassword")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data: " + err.Error()})
 		return
 	}
 
 	if len(passwordUpdate.NewPassword) < 6 {
+		utils.LogError(errors.New("new password is too short"), "New password is too short in UpdatePassword")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "The new password must contain at least 6 characters"})
 		return
 	}
 
-	// Vérifie si le nouveau mot de passe est identique à l'ancien
 	if passwordUpdate.OldPassword == passwordUpdate.NewPassword {
+		utils.LogError(errors.New("new password is the same as the old password"), "New password is the same as the old password in UpdatePassword")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "The new password must be different from the old password"})
 		return
 	}
 
 	var user models.User
 	if result := db.DB.Where("id = ?", userID).First(&user); result.Error != nil {
+		utils.LogError(result.Error, "User not found in UpdatePassword")
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(passwordUpdate.OldPassword)); err != nil {
+		utils.LogError(err, "Incorrect old password in UpdatePassword")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect old password"})
 		return
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(passwordUpdate.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
+		utils.LogError(err, "Error when hashing the new password in UpdatePassword")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error hashing password"})
 		return
 	}
 
 	if result := db.DB.Model(&user).Update("password", string(hashedPassword)); result.Error != nil {
+		utils.LogError(result.Error, "Error when updating password in UpdatePassword")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating password"})
 		return
 	}
 
+	utils.LogSuccessWithUser(userID, "Password updated successfully in UpdatePassword")
 	c.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
 }
 
@@ -148,18 +162,21 @@ func UpdatePassword(c *gin.Context) {
 func UpdateUserProfile(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(errors.New("user_id manquant"), "User not found in token dans UpdateUserProfile")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in token"})
 		return
 	}
 
 	var user models.User
 	if result := db.DB.Where("id = ?", userID).First(&user); result.Error != nil {
+		utils.LogError(result.Error, "User not found in UpdateUserProfile")
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
 	var formData models.UserUpdateFormData
 	if err := c.ShouldBind(&formData); err != nil {
+		utils.LogError(err, "Error when binding form data in UpdateUserProfile")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form data: " + err.Error()})
 		return
 	}
@@ -167,11 +184,13 @@ func UpdateUserProfile(c *gin.Context) {
 	if formData.UserName != "" {
 		var existingUser models.User
 		if err := db.DB.Where("user_name = ? AND id != ?", formData.UserName, userID).First(&existingUser).Error; err == nil {
+			utils.LogError(errors.New("username déjà utilisé"), "Username already taken in UpdateUserProfile")
 			c.JSON(http.StatusConflict, gin.H{
 				"error": "This username is already taken",
 			})
 			return
 		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			utils.LogError(err, "Error when checking the username existence in UpdateUserProfile")
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Error when checking the username existence",
 			})
@@ -184,6 +203,7 @@ func UpdateUserProfile(c *gin.Context) {
 	}
 	if formData.Email != "" {
 		if !utils.ValidateEmail(formData.Email) {
+			utils.LogError(errors.New("format email invalide"), "Invalid email format in UpdateUserProfile")
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
 			return
 		}
@@ -203,6 +223,7 @@ func UpdateUserProfile(c *gin.Context) {
 
 		imageURL, err := utils.UploadImage(file, "profile_pictures", "profile")
 		if err != nil {
+			utils.LogError(err, "Error when uploading profile picture in UpdateUserProfile")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading profile picture: " + err.Error()})
 			return
 		}
@@ -215,12 +236,14 @@ func UpdateUserProfile(c *gin.Context) {
 	}
 
 	if result := db.DB.Save(&user); result.Error != nil {
+		utils.LogError(result.Error, "Error when saving user profile in UpdateUserProfile")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating profile: " + result.Error.Error()})
 		return
 	}
 
 	user.Password = ""
 
+	utils.LogSuccessWithUser(userID, "User profile updated successfully in UpdateUserProfile")
 	c.JSON(http.StatusOK, user)
 }
 
@@ -238,21 +261,22 @@ func UpdateUserProfile(c *gin.Context) {
 func GetUserProfile(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(errors.New("user_id manquant"), "User not found in token dans GetUserProfile")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in token"})
 		return
 	}
 
 	var user models.User
-	// Utiliser exactement la même approche que GetAllUsers qui fonctionne dans les tests
 	result := db.DB.First(&user, "id = ?", userID)
 	if result.Error != nil {
+		utils.LogError(result.Error, "User not found in GetUserProfile")
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	// Ne pas renvoyer le mot de passe
 	user.Password = ""
 
+	utils.LogSuccessWithUser(userID, "User profile retrieved successfully in GetUserProfile")
 	c.JSON(http.StatusOK, user)
 }
 
@@ -280,6 +304,7 @@ type UserStatsResponse struct {
 func GetUserStatistics(c *gin.Context) {
 	filter := c.Query("filter")
 	if filter != "month" && filter != "year" {
+		utils.LogError(errors.New("paramètre filter invalide"), "Invalid filter parameter in GetUserStatistics")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Filter must be 'month' or 'year'"})
 		return
 	}
@@ -288,6 +313,7 @@ func GetUserStatistics(c *gin.Context) {
 	yearStr := c.DefaultQuery("year", strconv.Itoa(currentYear))
 	year, err := strconv.Atoi(yearStr)
 	if err != nil {
+		utils.LogError(err, "Invalid year parameter in GetUserStatistics")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid year parameter"})
 		return
 	}
@@ -299,18 +325,21 @@ func GetUserStatistics(c *gin.Context) {
 		if monthStr != "" {
 			month, err := strconv.Atoi(monthStr)
 			if err != nil || month < 1 || month > 12 {
+				utils.LogError(errors.New("paramètre month invalide"), "Invalid month parameter in GetUserStatistics")
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid month parameter (must be 1-12)"})
 				return
 			}
 
 			stats, err = getUserCountByDay(year, month)
 			if err != nil {
+				utils.LogError(err, "Error when retrieving daily statistics in GetUserStatistics")
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving daily statistics: " + err.Error()})
 				return
 			}
 		} else {
 			stats, err = getUserCountByMonth(year)
 			if err != nil {
+				utils.LogError(err, "Error when retrieving monthly statistics in GetUserStatistics")
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving monthly statistics: " + err.Error()})
 				return
 			}
@@ -318,11 +347,17 @@ func GetUserStatistics(c *gin.Context) {
 	} else {
 		stats, err = getUserCountByYear(year)
 		if err != nil {
+			utils.LogError(err, "Error when retrieving yearly statistics in GetUserStatistics")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving yearly statistics: " + err.Error()})
 			return
 		}
 	}
 
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "User statistics retrieved successfully in GetUserStatistics")
 	c.JSON(http.StatusOK, stats)
 }
 
@@ -487,7 +522,6 @@ func getUserCountByYear(targetYear int) ([]UserStatsResponse, error) {
 func GetUserRoleStats(c *gin.Context) {
 	var roleCounts = make(map[string]int)
 
-	// Initialiser les compteurs à 0
 	roleCounts["ADMIN"] = 0
 	roleCounts["CONTENT_CREATOR"] = 0
 	roleCounts["USER"] = 0
@@ -495,12 +529,18 @@ func GetUserRoleStats(c *gin.Context) {
 	for _, role := range []models.Role{models.AdminRole, models.ContentCreator, models.UserRole} {
 		var count int64
 		if err := db.DB.Model(&models.User{}).Where("role = ?", role).Count(&count).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors du comptage des utilisateurs par rôle"})
+			utils.LogError(err, "Error when counting users by role in GetUserRoleStats")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error counting users by role"})
 			return
 		}
 		roleCounts[string(role)] = int(count)
 	}
 
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "User role statistics retrieved successfully in GetUserRoleStats")
 	c.JSON(http.StatusOK, roleCounts)
 }
 
@@ -524,12 +564,18 @@ func GetUserGenderStats(c *gin.Context) {
 	for _, sexe := range []models.Sexe{models.Male, models.Female, models.Other} {
 		var count int64
 		if err := db.DB.Model(&models.User{}).Where("sexe = ?", sexe).Count(&count).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors du comptage des utilisateurs par sexe"})
+			utils.LogError(err, "Error when counting users by gender in GetUserGenderStats")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error counting users by gender"})
 			return
 		}
 		genderCounts[string(sexe)] = int(count)
 	}
 
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "User gender statistics retrieved successfully in GetUserGenderStats")
 	c.JSON(http.StatusOK, genderCounts)
 }
 
@@ -547,17 +593,20 @@ func RequestPasswordReset(c *gin.Context) {
 		Email string `json:"email" binding:"required,email"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.LogError(err, "Error when binding JSON in RequestPasswordReset")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email"})
 		return
 	}
 
 	if !utils.ValidateEmail(req.Email) {
+		utils.LogError(errors.New("format email invalide"), "Invalid email format in RequestPasswordReset")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
 		return
 	}
 
 	var user models.User
 	if err := db.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
+		utils.LogError(err, "User not found in RequestPasswordReset")
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
@@ -569,11 +618,17 @@ func RequestPasswordReset(c *gin.Context) {
 	user.ResetPasswordCodeEnd = end
 
 	if err := db.DB.Save(&user).Error; err != nil {
+		utils.LogError(err, "Error when saving the reset code in RequestPasswordReset")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving the user"})
 		return
 	}
 
 	mailsmodels.SendResetPasswordCode(user.Email, code)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Reset password code sent successfully in RequestPasswordReset")
 	c.JSON(http.StatusOK, gin.H{"message": "Code sent to the email if it exists in our database."})
 }
 
@@ -593,28 +648,33 @@ func ConfirmPasswordReset(c *gin.Context) {
 		NewPassword string `json:"newPassword" binding:"required,min=6"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.LogError(err, "Error when binding JSON in ConfirmPasswordReset")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
 		return
 	}
 
 	if !utils.ValidateEmail(req.Email) {
+		utils.LogError(errors.New("format email invalide"), "Invalid email format in ConfirmPasswordReset")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
 		return
 	}
 
 	var user models.User
 	if err := db.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
+		utils.LogError(err, "User not found in ConfirmPasswordReset")
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
 	if user.ResetPasswordCode != req.Code || time.Now().After(user.ResetPasswordCodeEnd) {
+		utils.LogError(errors.New("code invalide ou expiré"), "Invalid or expired reset code in ConfirmPasswordReset")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid code or expired"})
 		return
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
+		utils.LogError(err, "Error when hashing the new password in ConfirmPasswordReset")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error hashing the password"})
 		return
 	}
@@ -624,9 +684,15 @@ func ConfirmPasswordReset(c *gin.Context) {
 	user.ResetPasswordCodeEnd = time.Time{}
 
 	if err := db.DB.Save(&user).Error; err != nil {
+		utils.LogError(err, "Error when saving the new password in ConfirmPasswordReset")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving the user"})
 		return
 	}
 
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Password reset successfully in ConfirmPasswordReset")
 	c.JSON(http.StatusOK, gin.H{"message": "Password reset"})
 }

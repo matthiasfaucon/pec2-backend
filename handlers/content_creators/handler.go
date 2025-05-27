@@ -151,6 +151,7 @@ func Apply(c *gin.Context) {
 		Bic:           contentCreatorInfo.Bic,
 	})
 
+	utils.LogSuccessWithUser(userID, "Content creator application submitted successfully in Apply")
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Content creator application submitted successfully",
 	})
@@ -304,6 +305,7 @@ func UpdateContentCreatorInfo(c *gin.Context) {
 		Bic:           existingApplication.Bic,
 	})
 
+	utils.LogSuccessWithUser(userID, "Content creator information updated successfully in UpdateContentCreatorInfo")
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Content creator information updated successfully",
 	})
@@ -422,6 +424,7 @@ func UpdateContentCreatorStatus(c *gin.Context) {
 		Status:      statusUpdate.Status,
 	})
 
+	utils.LogSuccessWithUser(user.ID, "Content creator status updated successfully in UpdateContentCreatorStatus")
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Status updated successfully",
 	})

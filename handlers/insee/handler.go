@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"pec2-backend/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,19 +31,22 @@ type EntrepriseInfo struct {
 func GetEntrepriseInfo(c *gin.Context) {
 	siret := c.Param("siret")
 	if len(siret) != 14 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "SIRET invalide"})
+		utils.LogError(nil, "SIRET invalid in GetEntrepriseInfo")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "SIRET invalid"})
 		return
 	}
 
 	apiKey := os.Getenv("INSEE_API_KEY")
 	if apiKey == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "INSEE_API_KEY manquant"})
+		utils.LogError(nil, "INSEE_API_KEY missing in GetEntrepriseInfo")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "INSEE_API_KEY missing"})
 		return
 	}
 
 	url := "https://api.insee.fr/api-sirene/3.11/siret/" + siret
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		utils.LogError(err, "Error creating request in GetEntrepriseInfo")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating request"})
 		return
 	}
@@ -52,16 +56,19 @@ func GetEntrepriseInfo(c *gin.Context) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		utils.LogError(err, "Error calling INSEE in GetEntrepriseInfo")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error calling INSEE"})
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
+		utils.LogError(nil, "Siret not found in GetEntrepriseInfo")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Siret not found"})
 		return
 	}
 	if resp.StatusCode != http.StatusOK {
+		utils.LogError(nil, "INSEE error (status != 200) in GetEntrepriseInfo")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "INSEE error", "status": resp.StatusCode})
 		return
 	}
@@ -84,6 +91,7 @@ func GetEntrepriseInfo(c *gin.Context) {
 		} `json:"etablissement"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		utils.LogError(err, "Error decoding INSEE in GetEntrepriseInfo")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error decoding INSEE"})
 		return
 	}
@@ -99,5 +107,10 @@ func GetEntrepriseInfo(c *gin.Context) {
 		Postal_code:  etab.AdresseEtablissement.CodePostalEtablissement,
 		City:         etab.AdresseEtablissement.LibelleCommuneEtablissement,
 	}
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "INSEE informations retrieved successfully in GetEntrepriseInfo")
 	c.JSON(http.StatusOK, info)
 }

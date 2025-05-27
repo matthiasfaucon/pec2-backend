@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"pec2-backend/db"
 	"pec2-backend/models"
+	"pec2-backend/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +23,7 @@ import (
 func ToggleLike(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(nil, "User not found in token in ToggleLike")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in token"})
 		return
 	}
@@ -31,6 +33,7 @@ func ToggleLike(c *gin.Context) {
 	// Vérifier si le post existe
 	var post models.Post
 	if err := db.DB.First(&post, "id = ?", postID).Error; err != nil {
+		utils.LogError(err, "Post not found in ToggleLike")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
 		return
 	}
@@ -41,6 +44,7 @@ func ToggleLike(c *gin.Context) {
 	if result.Error == nil {
 		// Le like existe déjà, on le supprime
 		if err := db.DB.Delete(&like).Error; err != nil {
+			utils.LogError(err, "Error removing like in ToggleLike")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error removing like: " + err.Error()})
 			return
 		}
@@ -49,6 +53,7 @@ func ToggleLike(c *gin.Context) {
 		var likesCount int64
 		db.DB.Model(&models.Like{}).Where("post_id = ?", postID).Count(&likesCount)
 
+		utils.LogSuccessWithUser(userID, "Like removed successfully in ToggleLike")
 		c.JSON(http.StatusOK, gin.H{
 			"message":    "Like removed successfully",
 			"action":     "removed",
@@ -64,6 +69,7 @@ func ToggleLike(c *gin.Context) {
 	}
 
 	if err := db.DB.Create(&like).Error; err != nil {
+		utils.LogError(err, "Error adding like in ToggleLike")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error adding like: " + err.Error()})
 		return
 	}
@@ -72,6 +78,7 @@ func ToggleLike(c *gin.Context) {
 	var likesCount int64
 	db.DB.Model(&models.Like{}).Where("post_id = ?", postID).Count(&likesCount)
 
+	utils.LogSuccessWithUser(userID, "Like added successfully in ToggleLike")
 	c.JSON(http.StatusOK, gin.H{
 		"message":    "Like added successfully",
 		"action":     "added",
