@@ -1,8 +1,0 @@
-{"function":"pec2-backend/handlers/insee.GetEntrepriseInfo","level":"info","msg":"INSEE informations retrieved successfully in GetEntrepriseInfo","status":"success","time":"2025-05-27T11:03:54+02:00"}
-{"function":"main.main","level":"info","msg":"Le serveur fonctionne sur le port 8080","status":"success","time":"2025-05-27T17:20:49+02:00"}
-{"function":"pec2-backend/handlers/auth.Login","level":"info","msg":"User login successfully in Login","status":"success","time":"2025-05-27T17:21:32+02:00"}
-{"function":"pec2-backend/handlers/auth.Login","level":"info","msg":"User login successfully in Login","status":"success","time":"2025-05-27T17:21:54+02:00"}
-{"function":"pec2-backend/handlers/auth.Login","level":"info","msg":"User login successfully in Login","status":"success","time":"2025-05-27T17:21:55+02:00"}
-{"function":"pec2-backend/handlers/auth.Login","level":"info","msg":"User login successfully in Login","status":"success","time":"2025-05-27T17:21:55+02:00"}
-{"function":"pec2-backend/handlers/auth.Login","level":"info","msg":"User login successfully in Login","status":"success","time":"2025-05-27T17:21:56+02:00"}
-{"function":"pec2-backend/handlers/auth.Login","level":"info","msg":"User login successfully in Login","status":"success","time":"2025-05-27T17:21:56+02:00"}

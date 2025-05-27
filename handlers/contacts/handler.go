@@ -70,7 +70,11 @@ func CreateContact(c *gin.Context) {
 	}
 	mailsmodels.ContactConfirmation(emailData)
 
-	utils.LogSuccess("Contact request created successfully in CreateContact")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Contact request created successfully in CreateContact")
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Contact request submitted successfully",
 		"id":      contact.ID,
@@ -98,7 +102,11 @@ func GetAllContacts(c *gin.Context) {
 		return
 	}
 
-	utils.LogSuccess("List of contacts retrieved successfully in GetAllContacts")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "List of contacts retrieved successfully in GetAllContacts")
 	c.JSON(http.StatusOK, contacts)
 }
 
@@ -172,7 +180,11 @@ func UpdateContactStatus(c *gin.Context) {
 	}
 	mailsmodels.ContactStatusUpdate(emailData)
 
-	utils.LogSuccess("Contact status updated successfully in UpdateContactStatus")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Contact status updated successfully in UpdateContactStatus")
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Status updated successfully",
 	})
