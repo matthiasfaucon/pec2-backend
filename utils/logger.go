@@ -44,6 +44,24 @@ func LogError(err error, message string) {
 	entry.Error(message)
 }
 
+func LogSuccessWithUser(userID interface{}, message string) {
+	if userID == nil || userID == "" {
+		userID = "0"
+	}
+	Logger.WithField("function", getCaller()).WithField("status", "success").WithField("user_id", userID).Info(message)
+}
+
+func LogErrorWithUser(userID interface{}, err error, message string) {
+	if userID == nil || userID == "" {
+		userID = "0"
+	}
+	entry := Logger.WithField("function", getCaller()).WithField("status", "error").WithField("user_id", userID)
+	if err != nil {
+		entry = entry.WithField("error", err.Error())
+	}
+	entry.Error(message)
+}
+
 func getCaller() string {
 	pc, _, _, ok := runtime.Caller(2)
 	if !ok {

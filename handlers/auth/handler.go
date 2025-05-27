@@ -203,7 +203,11 @@ func CreateUser(c *gin.Context) {
 	}
 
 	mailsmodels.ConfirmEmail(user.Email, code)
-	utils.LogSuccess("User created successfully in CreateUser")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "User created successfully in CreateUser")
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User created successfully",
 		"email":   user.Email,
@@ -306,7 +310,11 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	utils.LogSuccess("User login successfully in Login")
+	userID := user.ID
+	if userID == "" {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "User login successfully in Login")
 	c.JSON(http.StatusOK, gin.H{
 		"token": token,
 		"user":  user,
@@ -372,7 +380,11 @@ func ValidEmail(c *gin.Context) {
 		return
 	}
 
-	utils.LogSuccess("Email validation successfully in ValidEmail")
+	userID := user.ID
+	if userID == "" {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Email validation successfully in ValidEmail")
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User validate account",
 	})
@@ -430,7 +442,11 @@ func ResendValidEmail(c *gin.Context) {
 	}
 
 	mailsmodels.ConfirmEmail(email, code)
-	utils.LogSuccess("Resend validation code successfully in ResendValidEmail")
+	userID := user.ID
+	if userID == "" {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Resend validation code successfully in ResendValidEmail")
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Resend code for user : " + user.ID,
 	})

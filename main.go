@@ -29,7 +29,7 @@ func main() {
 
 	// Initialiser Cloudinary
 	if err := utils.InitCloudinary(); err != nil {
-		utils.LogError(err, "Erreur lors de l'initialisation de Cloudinary")
+		utils.LogError(err, "Error when initializing Cloudinary")
 	}
 
 	// Récupérer les variables d'environnement
@@ -48,6 +48,6 @@ func main() {
 	r := routes.SetupRouter()
 
 	if err := r.Run(baseURL + ":" + port); err != nil {
-		utils.LogError(err, "Erreur lors du démarrage du serveur")
+		utils.LogError(err, "Error when starting the server")
 	}
 }

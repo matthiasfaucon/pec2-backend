@@ -61,7 +61,11 @@ func GetAllUsers(c *gin.Context) {
 		users[i].Password = ""
 	}
 
-	utils.LogSuccess("List of users retrieved successfully in GetAllUsers")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "List of users retrieved successfully in GetAllUsers")
 	c.JSON(http.StatusOK, users)
 }
 
@@ -131,7 +135,7 @@ func UpdatePassword(c *gin.Context) {
 		return
 	}
 
-	utils.LogSuccess("Password updated successfully in UpdatePassword")
+	utils.LogSuccessWithUser(userID, "Password updated successfully in UpdatePassword")
 	c.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
 }
 
@@ -239,7 +243,7 @@ func UpdateUserProfile(c *gin.Context) {
 
 	user.Password = ""
 
-	utils.LogSuccess("User profile updated successfully in UpdateUserProfile")
+	utils.LogSuccessWithUser(userID, "User profile updated successfully in UpdateUserProfile")
 	c.JSON(http.StatusOK, user)
 }
 
@@ -272,7 +276,7 @@ func GetUserProfile(c *gin.Context) {
 
 	user.Password = ""
 
-	utils.LogSuccess("User profile retrieved successfully in GetUserProfile")
+	utils.LogSuccessWithUser(userID, "User profile retrieved successfully in GetUserProfile")
 	c.JSON(http.StatusOK, user)
 }
 
@@ -349,7 +353,11 @@ func GetUserStatistics(c *gin.Context) {
 		}
 	}
 
-	utils.LogSuccess("User statistics retrieved successfully in GetUserStatistics")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "User statistics retrieved successfully in GetUserStatistics")
 	c.JSON(http.StatusOK, stats)
 }
 
@@ -528,7 +536,11 @@ func GetUserRoleStats(c *gin.Context) {
 		roleCounts[string(role)] = int(count)
 	}
 
-	utils.LogSuccess("User role statistics retrieved successfully in GetUserRoleStats")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "User role statistics retrieved successfully in GetUserRoleStats")
 	c.JSON(http.StatusOK, roleCounts)
 }
 
@@ -559,7 +571,11 @@ func GetUserGenderStats(c *gin.Context) {
 		genderCounts[string(sexe)] = int(count)
 	}
 
-	utils.LogSuccess("User gender statistics retrieved successfully in GetUserGenderStats")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "User gender statistics retrieved successfully in GetUserGenderStats")
 	c.JSON(http.StatusOK, genderCounts)
 }
 
@@ -608,7 +624,11 @@ func RequestPasswordReset(c *gin.Context) {
 	}
 
 	mailsmodels.SendResetPasswordCode(user.Email, code)
-	utils.LogSuccess("Reset password code sent successfully in RequestPasswordReset")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Reset password code sent successfully in RequestPasswordReset")
 	c.JSON(http.StatusOK, gin.H{"message": "Code sent to the email if it exists in our database."})
 }
 
@@ -669,6 +689,10 @@ func ConfirmPasswordReset(c *gin.Context) {
 		return
 	}
 
-	utils.LogSuccess("Password reset successfully in ConfirmPasswordReset")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Password reset successfully in ConfirmPasswordReset")
 	c.JSON(http.StatusOK, gin.H{"message": "Password reset"})
 }
