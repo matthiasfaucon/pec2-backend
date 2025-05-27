@@ -1,0 +1,3 @@
+{"function":"main.main","level":"info","msg":"Le serveur fonctionne sur le port 8080","status":"success","time":"2025-05-27T10:08:26+02:00"}
+{"function":"pec2-backend/handlers/auth.Login","level":"info","msg":"Connexion utilisateur réussie dans Login","status":"success","time":"2025-05-27T10:15:54+02:00"}
+{"error":"email déjà utilisé","function":"pec2-backend/handlers/auth.CreateUser","level":"error","msg":"Email déjà utilisé dans CreateUser","status":"error","time":"2025-05-27T10:16:17+02:00"}
