@@ -107,6 +107,10 @@ func GetEntrepriseInfo(c *gin.Context) {
 		Postal_code:  etab.AdresseEtablissement.CodePostalEtablissement,
 		City:         etab.AdresseEtablissement.LibelleCommuneEtablissement,
 	}
-	utils.LogSuccess("INSEE informations retrieved successfully in GetEntrepriseInfo")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "INSEE informations retrieved successfully in GetEntrepriseInfo")
 	c.JSON(http.StatusOK, info)
 }

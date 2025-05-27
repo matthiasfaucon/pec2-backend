@@ -69,7 +69,7 @@ func CreatePrivateMessage(c *gin.Context) {
 		return
 	}
 
-	utils.LogSuccess("Private message created successfully in CreatePrivateMessage")
+	utils.LogSuccessWithUser(senderID, "Private message created successfully in CreatePrivateMessage")
 	c.JSON(http.StatusCreated, privateMessage)
 }
 
@@ -129,7 +129,7 @@ func GetUserMessages(c *gin.Context) {
 		enhancedMessages = append(enhancedMessages, enhancedMsg)
 	}
 
-	utils.LogSuccess("User messages retrieved successfully in GetUserMessages")
+	utils.LogSuccessWithUser(userID, "User messages retrieved successfully in GetUserMessages")
 	c.JSON(http.StatusOK, enhancedMessages)
 }
 
@@ -183,7 +183,7 @@ func GetReceivedMessages(c *gin.Context) {
 		enhancedMessages = append(enhancedMessages, enhancedMsg)
 	}
 
-	utils.LogSuccess("Received messages retrieved successfully in GetReceivedMessages")
+	utils.LogSuccessWithUser(userID, "Received messages retrieved successfully in GetReceivedMessages")
 	c.JSON(http.StatusOK, enhancedMessages)
 }
 
@@ -237,7 +237,7 @@ func GetSentMessages(c *gin.Context) {
 		enhancedMessages = append(enhancedMessages, enhancedMsg)
 	}
 
-	utils.LogSuccess("Sent messages retrieved successfully in GetSentMessages")
+	utils.LogSuccessWithUser(userID, "Sent messages retrieved successfully in GetSentMessages")
 	c.JSON(http.StatusOK, enhancedMessages)
 }
 
@@ -289,7 +289,7 @@ func MarkMessageAsRead(c *gin.Context) {
 	}
 
 	if message.Status == models.MessageStatusRead {
-		utils.LogSuccess("Message already marked as read in MarkMessageAsRead")
+		utils.LogSuccessWithUser(userID, "Message already marked as read in MarkMessageAsRead")
 		c.JSON(http.StatusOK, gin.H{"message": "Message is already marked as read"})
 		return
 	}
@@ -300,6 +300,6 @@ func MarkMessageAsRead(c *gin.Context) {
 		return
 	}
 
-	utils.LogSuccess("Message marked as read successfully in MarkMessageAsRead")
+	utils.LogSuccessWithUser(userID, "Message marked as read successfully in MarkMessageAsRead")
 	c.JSON(http.StatusOK, gin.H{"message": "Message marked as read"})
 }

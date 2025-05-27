@@ -64,7 +64,11 @@ func GetCommentsByPostID(c *gin.Context) {
 		commentsResponse = append(commentsResponse, sseComment)
 	}
 
-	utils.LogSuccess("Comments retrieved successfully in GetCommentsByPostID")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Comments retrieved successfully in GetCommentsByPostID")
 	c.JSON(http.StatusOK, gin.H{"comments": commentsResponse})
 }
 
@@ -180,7 +184,11 @@ func HandleSSE(c *gin.Context) {
 		}
 	}
 
-	utils.LogSuccess("SSE connection established in HandleSSE")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "SSE connection established in HandleSSE")
 
 	ctx := c.Request.Context()
 
@@ -291,7 +299,11 @@ func CreateComment(c *gin.Context) {
 	// Diffuser à tous les clients connectés pour ce post
 	broadcastComment(postID, sseComment)
 
-	utils.LogSuccess("Comment created successfully in CreateComment")
+	userID, exists = c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Comment created successfully in CreateComment")
 	c.JSON(http.StatusCreated, gin.H{"comment": sseComment})
 }
 

@@ -53,7 +53,7 @@ func ToggleLike(c *gin.Context) {
 		var likesCount int64
 		db.DB.Model(&models.Like{}).Where("post_id = ?", postID).Count(&likesCount)
 
-		utils.LogSuccess("Like removed successfully in ToggleLike")
+		utils.LogSuccessWithUser(userID, "Like removed successfully in ToggleLike")
 		c.JSON(http.StatusOK, gin.H{
 			"message":    "Like removed successfully",
 			"action":     "removed",
@@ -78,7 +78,7 @@ func ToggleLike(c *gin.Context) {
 	var likesCount int64
 	db.DB.Model(&models.Like{}).Where("post_id = ?", postID).Count(&likesCount)
 
-	utils.LogSuccess("Like added successfully in ToggleLike")
+	utils.LogSuccessWithUser(userID, "Like added successfully in ToggleLike")
 	c.JSON(http.StatusOK, gin.H{
 		"message":    "Like added successfully",
 		"action":     "added",

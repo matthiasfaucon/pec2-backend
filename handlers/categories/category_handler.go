@@ -105,7 +105,11 @@ func CreateCategory(c *gin.Context) {
 	}
 
 	fmt.Println("Category created successfully:", category)
-	utils.LogSuccess("Category created successfully in CreateCategory")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Category created successfully in CreateCategory")
 	c.JSON(http.StatusCreated, category)
 }
 
@@ -131,7 +135,11 @@ func GetAllCategories(c *gin.Context) {
 		return
 	}
 
-	utils.LogSuccess("List of categories retrieved successfully in GetAllCategories")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "List of categories retrieved successfully in GetAllCategories")
 	c.JSON(http.StatusOK, categories)
 }
 
@@ -174,7 +182,11 @@ func DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	utils.LogSuccess("Category deleted successfully in DeleteCategory")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Category deleted successfully in DeleteCategory")
 	c.JSON(http.StatusOK, gin.H{"message": "Category deleted successfully"})
 }
 
@@ -246,6 +258,10 @@ func UpdateCategory(c *gin.Context) {
 		return
 	}
 
-	utils.LogSuccess("Category updated successfully in UpdateCategory")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Category updated successfully in UpdateCategory")
 	c.JSON(http.StatusOK, category)
 }

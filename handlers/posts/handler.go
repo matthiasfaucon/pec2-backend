@@ -120,7 +120,7 @@ func CreatePost(c *gin.Context) {
 		return
 	}
 
-	utils.LogSuccess("Post created successfully in CreatePost")
+	utils.LogSuccessWithUser(userID, "Post created successfully in CreatePost")
 	c.JSON(http.StatusCreated, post)
 }
 
@@ -172,14 +172,14 @@ func GetAllPosts(c *gin.Context) {
 
 		// Créer la réponse pour ce post
 		postResponse := models.PostResponse{
-			ID:            post.ID,
-			Name:          post.Name,
-			PictureURL:    post.PictureURL,
-			IsFree:        post.IsFree,
-			Enable:        post.Enable,
-			Categories:    post.Categories,
-			CreatedAt:     post.CreatedAt,
-			UpdatedAt:     post.UpdatedAt,
+			ID:         post.ID,
+			Name:       post.Name,
+			PictureURL: post.PictureURL,
+			IsFree:     post.IsFree,
+			Enable:     post.Enable,
+			Categories: post.Categories,
+			CreatedAt:  post.CreatedAt,
+			UpdatedAt:  post.UpdatedAt,
 			User: models.UserInfo{
 				ID:             post.User.ID,
 				UserName:       post.User.UserName,
@@ -193,6 +193,11 @@ func GetAllPosts(c *gin.Context) {
 		response = append(response, postResponse)
 	}
 
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Posts retrieved successfully in GetAllPosts")
 	utils.LogSuccess("Posts retrieved successfully in GetAllPosts")
 	c.JSON(http.StatusOK, response)
 }
@@ -230,14 +235,14 @@ func GetPostByID(c *gin.Context) {
 
 	// Créer la réponse pour ce post
 	postResponse := models.PostResponse{
-		ID:            post.ID,
-		Name:          post.Name,
-		PictureURL:    post.PictureURL,
-		IsFree:        post.IsFree,
-		Enable:        post.Enable,
-		Categories:    post.Categories,
-		CreatedAt:     post.CreatedAt,
-		UpdatedAt:     post.UpdatedAt,
+		ID:         post.ID,
+		Name:       post.Name,
+		PictureURL: post.PictureURL,
+		IsFree:     post.IsFree,
+		Enable:     post.Enable,
+		Categories: post.Categories,
+		CreatedAt:  post.CreatedAt,
+		UpdatedAt:  post.UpdatedAt,
 		User: models.UserInfo{
 			ID:             post.User.ID,
 			UserName:       post.User.UserName,

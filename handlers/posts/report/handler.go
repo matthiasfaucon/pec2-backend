@@ -86,7 +86,7 @@ func ReportPost(c *gin.Context) {
 		return
 	}
 
-	utils.LogSuccess("Report successfully created in ReportPost")
+	utils.LogSuccessWithUser(userID, "Report successfully created in ReportPost")
 	c.JSON(http.StatusCreated, report)
 }
 
@@ -109,6 +109,10 @@ func GetAllReports(c *gin.Context) {
 		return
 	}
 
-	utils.LogSuccess("Reports successfully retrieved in GetAllReports")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Reports successfully retrieved in GetAllReports")
 	c.JSON(http.StatusOK, reports)
 }
