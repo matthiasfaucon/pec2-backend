@@ -443,8 +443,6 @@ definitions:
         type: string
       subscriptionEnable:
         type: boolean
-      subscriptionPrice:
-        type: integer
       updatedAt:
         type: string
       userName:

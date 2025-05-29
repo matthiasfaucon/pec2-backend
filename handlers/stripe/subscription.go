@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	stripe "github.com/stripe/stripe-go/v76"
 	session "github.com/stripe/stripe-go/v76/checkout/session"
+	"github.com/stripe/stripe-go/v76/customer"
 )
 
 // CreateSubscriptionCheckoutSession start a stripe payment to subscribe to a content creator (verified role). Returns the Stripe session ID to use on the frontend.
@@ -29,6 +30,8 @@ import (
 func CreateSubscriptionCheckoutSession(c *gin.Context) {
 	contentCreatorId := c.Param("contentCreatorId")
 
+	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
+
 	// Vérification du rôle
 	var user models.User
 	err := db.DB.First(&user, "id = ?", contentCreatorId).Error
@@ -41,9 +44,22 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 		return
 	}
 
-	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
+	if user.StripeCustomerId == "" {
+		custParams := &stripe.CustomerParams{
+			Email: stripe.String(user.Email),
+			Name:  stripe.String(user.UserName),
+		}
+		cust, err := customer.New(custParams)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error when creating Stripe customer"})
+			return
+		}
+		db.DB.Model(&user).Update("stripe_customer_id", cust.ID)
+		user.StripeCustomerId = cust.ID
+	}
 
 	params := &stripe.CheckoutSessionParams{
+		Customer:           stripe.String(user.StripeCustomerId),
 		PaymentMethodTypes: stripe.StringSlice([]string{"card"}),
 		Mode:               stripe.String(string(stripe.CheckoutSessionModeSubscription)),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{

@@ -3421,9 +3421,6 @@ const docTemplate = `{
                 "subscriptionEnable": {
                     "type": "boolean"
                 },
-                "subscriptionPrice": {
-                    "type": "integer"
-                },
                 "updatedAt": {
                     "type": "string"
                 },
