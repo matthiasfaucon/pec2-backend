@@ -1899,6 +1899,56 @@ paths:
       summary: Create a new user
       tags:
       - auth
+  /subscriptions/checkout/{contentCreatorId}:
+    post:
+      consumes:
+      - application/json
+      description: Start a Stripe payment to subscribe to a content creator (verified
+        role). Returns the Stripe session ID to use on the frontend.
+      parameters:
+      - description: ID of the content creator
+        in: path
+        name: contentCreatorId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'sessionId: ID of the Stripe Checkout session'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Can only subscribe to a content creator'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: User not found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Stripe error or server error'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a Stripe Checkout session for subscription
+      tags:
+      - subscriptions
   /users:
     get:
       consumes:
