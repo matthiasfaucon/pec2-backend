@@ -45,8 +45,7 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 
 	if user.StripeCustomerId == "" {
 		custParams := &stripe.CustomerParams{
-			Email: stripe.String(user.Email),
-			Name:  stripe.String(user.UserName),
+			Name: stripe.String(user.UserName),
 		}
 		cust, err := customer.New(custParams)
 		if err != nil {

@@ -3,7 +3,7 @@ package stripe
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -19,7 +19,7 @@ import (
 func StripeWebhookHandler(c *gin.Context) {
 	const MaxBodyBytes = int64(65536)
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxBodyBytes)
-	payload, err := ioutil.ReadAll(c.Request.Body)
+	payload, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Error reading request body"})
 		return
@@ -62,7 +62,9 @@ func StripeWebhookHandler(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Target is not a content creator"})
 			return
 		}
-		// 3. Créer l'abonnement en base
+		// 3. Créer l'abonnement en base avec date de fin +1 mois
+		startDate := time.Now()
+		endDate := startDate.AddDate(0, 1, 0)
 		stripeSubID := ""
 		if session.Subscription != nil {
 			stripeSubID = session.Subscription.ID
@@ -72,16 +74,31 @@ func StripeWebhookHandler(c *gin.Context) {
 			ContentCreatorID:     creator.ID,
 			Status:               models.SubscriptionActive,
 			StripeSubscriptionId: stripeSubID,
-			StartDate:            time.Now(),
+			StartDate:            startDate,
+			EndDate:              &endDate,
 		}
 		err = db.DB.Create(&sub).Error
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors de la création de l'abonnement"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating subscription"})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"message": "Abonnement créé en base"})
+		// 4. Créer le paiement dans SubscriptionPayment
+		amount := int(session.AmountTotal / 100) // Stripe stocke en centimes
+		paymentIntentID := ""
+		if session.PaymentIntent != nil {
+			paymentIntentID = session.PaymentIntent.ID
+		}
+		payment := models.SubscriptionPayment{
+			SubscriptionID:        sub.ID,
+			Amount:                amount,
+			PaidAt:                time.Now(),
+			StripePaymentIntentId: paymentIntentID,
+		}
+		db.DB.Create(&payment)
+		fmt.Println("Stripe customer utilisé pour le paiement :", user.StripeCustomerId)
+		c.JSON(http.StatusOK, gin.H{"message": "Subscription created and payment created"})
 		return
 	default:
-		c.JSON(http.StatusOK, gin.H{"message": "Event ignoré"})
+		c.JSON(http.StatusOK, gin.H{"message": "Event ignored"})
 	}
 }
