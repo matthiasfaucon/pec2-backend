@@ -13,4 +13,5 @@ func StripeRoutes(r *gin.Engine) {
 	{
 		subscriptionRoutes.POST("/checkout/:contentCreatorId", stripe.CreateSubscriptionCheckoutSession)
 	}
+	r.POST("/stripe/webhook", stripe.StripeWebhookHandler)
 }

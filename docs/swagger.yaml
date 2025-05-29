@@ -1913,7 +1913,8 @@ paths:
       - application/json
       responses:
         "200":
-          description: 'sessionId: ID of the Stripe Checkout session'
+          description: 'sessionId: ID of the Stripe Checkout session, url: Stripe
+            Checkout URL'
           schema:
             additionalProperties:
               type: string

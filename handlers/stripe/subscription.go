@@ -8,9 +8,9 @@ import (
 	"pec2-backend/models"
 
 	"github.com/gin-gonic/gin"
-	stripe "github.com/stripe/stripe-go/v76"
-	session "github.com/stripe/stripe-go/v76/checkout/session"
-	"github.com/stripe/stripe-go/v76/customer"
+	stripe "github.com/stripe/stripe-go/v82"
+	session "github.com/stripe/stripe-go/v82/checkout/session"
+	"github.com/stripe/stripe-go/v82/customer"
 )
 
 // CreateSubscriptionCheckoutSession start a stripe payment to subscribe to a content creator (verified role). Returns the Stripe session ID to use on the frontend.
@@ -21,7 +21,7 @@ import (
 // @Produce json
 // @Param contentCreatorId path string true "ID of the content creator"
 // @Security BearerAuth
-// @Success 200 {object} map[string]string "sessionId: ID of the Stripe Checkout session"
+// @Success 200 {object} map[string]string "sessionId: ID of the Stripe Checkout session, url: Stripe Checkout URL"
 // @Failure 401 {object} map[string]string "error: Unauthorized"
 // @Failure 403 {object} map[string]string "error: Can only subscribe to a content creator"
 // @Failure 404 {object} map[string]string "error: User not found"
@@ -32,7 +32,6 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 
 	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
 
-	// Vérification du rôle
 	var user models.User
 	err := db.DB.First(&user, "id = ?", contentCreatorId).Error
 	if err != nil {
@@ -78,5 +77,5 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"sessionId": s.ID})
+	c.JSON(http.StatusOK, gin.H{"sessionId": s.ID, "url": s.URL})
 }

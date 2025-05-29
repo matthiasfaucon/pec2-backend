@@ -2107,7 +2107,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "sessionId: ID of the Stripe Checkout session",
+                        "description": "sessionId: ID of the Stripe Checkout session, url: Stripe Checkout URL",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
