@@ -32,32 +32,45 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 
 	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
 
-	var user models.User
-	err := db.DB.First(&user, "id = ?", contentCreatorId).Error
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var payer models.User
+	err := db.DB.First(&payer, "id = ?", userID).Error
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
-	if user.Role != models.ContentCreator {
+
+	var creator models.User
+	err = db.DB.First(&creator, "id = ?", contentCreatorId).Error
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Content creator not found"})
+		return
+	}
+	if creator.Role != models.ContentCreator {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Can only subscribe to a content creator"})
 		return
 	}
 
-	if user.StripeCustomerId == "" {
+	if payer.StripeCustomerId == "" {
 		custParams := &stripe.CustomerParams{
-			Name: stripe.String(user.UserName),
+			Name: stripe.String(payer.UserName),
 		}
 		cust, err := customer.New(custParams)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error when creating Stripe customer"})
 			return
 		}
-		db.DB.Model(&user).Update("stripe_customer_id", cust.ID)
-		user.StripeCustomerId = cust.ID
+		db.DB.Model(&payer).Update("stripe_customer_id", cust.ID)
+		payer.StripeCustomerId = cust.ID
 	}
 
 	params := &stripe.CheckoutSessionParams{
-		Customer:           stripe.String(user.StripeCustomerId),
+		Customer:           stripe.String(payer.StripeCustomerId), 
 		PaymentMethodTypes: stripe.StringSlice([]string{"card"}),
 		Mode:               stripe.String(string(stripe.CheckoutSessionModeSubscription)),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
@@ -68,7 +81,7 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 		},
 		SuccessURL:        stripe.String("https://tonsite.com/success"),
 		CancelURL:         stripe.String("https://tonsite.com/cancel"),
-		ClientReferenceID: stripe.String(contentCreatorId),
+		ClientReferenceID: stripe.String(contentCreatorId), 
 	}
 
 	s, err := session.New(params)

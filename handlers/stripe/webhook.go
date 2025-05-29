@@ -130,7 +130,7 @@ func handleCheckoutSessionCompleted(c *gin.Context, event stripe.Event) {
 	sub := models.Subscription{
 		UserID:               user.ID,
 		ContentCreatorID:     creator.ID,
-		Status:               models.SubscriptionPending, 
+		Status:               models.SubscriptionPending,
 		StripeSubscriptionId: stripeSubID,
 		StartDate:            startDate,
 		EndDate:              &endDate,
@@ -185,7 +185,7 @@ func handlePaymentIntentSucceeded(c *gin.Context, event stripe.Event) {
 		return
 	}
 
-	amount := int(paymentIntent.Amount ) 
+	amount := int(paymentIntent.Amount)
 	payment := models.SubscriptionPayment{
 		SubscriptionID:        subscription.ID,
 		Amount:                amount,
