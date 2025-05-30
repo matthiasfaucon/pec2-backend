@@ -212,7 +212,6 @@ func GetUserSubscriptions(c *gin.Context) {
 func GetSubscriptionDetail(c *gin.Context) {
 	subscriptionId := c.Param("subscriptionId")
 
-	// Validation de l'UUID
 	if _, err := uuid.Parse(subscriptionId); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid subscription ID"})
 		return
