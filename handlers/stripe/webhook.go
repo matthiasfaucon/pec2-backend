@@ -115,6 +115,17 @@ func handleCheckoutSessionCompleted(c *gin.Context, event stripe.Event) {
 		}
 	}
 
+	// AJOUT: Vérifier si une subscription existe déjà pour éviter les doublons
+	var existingSub models.Subscription
+	err = db.DB.Where("user_id = ? AND content_creator_id = ? AND status IN (?)",
+		user.ID, creator.ID, []models.SubscriptionStatus{models.SubscriptionPending, models.SubscriptionActive}).
+		First(&existingSub).Error
+	if err == nil {
+		fmt.Printf("Subscription already exists for user %s and creator %s\n", user.ID, creator.ID)
+		c.JSON(http.StatusOK, gin.H{"message": "Subscription already exists"})
+		return
+	}
+
 	startDate := time.Now()
 	endDate := startDate.AddDate(0, 1, 0)
 
@@ -167,11 +178,30 @@ func handlePaymentIntentSucceeded(c *gin.Context, event stripe.Event) {
 	}
 
 	var subscription models.Subscription
-	err = db.DB.Where("user_id = ? AND status IN (?)",
-		user.ID, []models.SubscriptionStatus{models.SubscriptionPending, models.SubscriptionActive}).
-		Order("created_at DESC").First(&subscription).Error
-	if err != nil {
-		fmt.Printf("Subscription non trouvée pour user ID: %s\n", user.ID)
+	// MODIFICATION: Augmenter les retries et le délai pour gérer le problème de timing
+	maxRetries := 10
+	delay := 500 * time.Millisecond
+	found := false
+	for i := 0; i < maxRetries; i++ {
+		err = db.DB.Where("user_id = ? AND status IN (?)",
+			user.ID, []models.SubscriptionStatus{models.SubscriptionPending, models.SubscriptionActive}).
+			Order("created_at DESC").First(&subscription).Error
+		if err == nil {
+			found = true
+			break
+		}
+		if i < maxRetries-1 {
+			fmt.Printf("Tentative %d/%d: Subscription non trouvée pour user ID: %s, retry dans %v\n", 
+				i+1, maxRetries, user.ID, delay)
+			time.Sleep(delay)
+			// AJOUT: Backoff exponentiel mais limité
+			if delay < 2*time.Second {
+				delay = delay * 2
+			}
+		}
+	}
+	if !found {
+		fmt.Printf("Subscription non trouvée pour user ID: %s après %d essais\n", user.ID, maxRetries)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found for this payment"})
 		return
 	}

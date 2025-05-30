@@ -159,3 +159,71 @@ func CancelSubscription(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Subscription canceled successfully"})
 }
+
+// GetUserSubscriptions get all the subscriptions (active, canceled, history) of the connected user		
+// @Summary List the user's subscriptions
+// @Description Return all the subscriptions (active, canceled, history) of the connected user
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.Subscription
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Router /subscriptions [get]
+func GetUserSubscriptions(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var subscriptions []models.Subscription
+	err := db.DB.Where("user_id = ?", userID).Order("created_at DESC").Find(&subscriptions).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching subscriptions"})
+		return
+	}
+
+	c.JSON(http.StatusOK, subscriptions)
+}
+
+// GetSubscriptionDetail returns the details of a subscription
+// @Summary Details of a subscription
+// @Description Return the detailed information of a subscription
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param subscriptionId path string true "ID of the subscription"
+// @Security BearerAuth
+// @Success 200 {object} models.Subscription
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 403 {object} map[string]string "error: You are not authorized to view this subscription"
+// @Failure 404 {object} map[string]string "error: Subscription not found"
+// @Router /subscriptions/{subscriptionId} [get]
+func GetSubscriptionDetail(c *gin.Context) {
+	subscriptionId := c.Param("subscriptionId")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var subscription models.Subscription
+	var err error
+	if strings.HasPrefix(subscriptionId, "sub_") {
+		err = db.DB.First(&subscription, "stripe_subscription_id = ?", subscriptionId).Error
+	} else {
+		err = db.DB.First(&subscription, "id = ?", subscriptionId).Error
+	}
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found"})
+		return
+	}
+
+	if subscription.UserID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not authorized to view this subscription"})
+		return
+	}
+
+	c.JSON(http.StatusOK, subscription)
+}

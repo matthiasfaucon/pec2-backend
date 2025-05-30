@@ -2078,6 +2078,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/subscriptions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Return all the subscriptions (active, canceled, history) of the connected user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "List the user's subscriptions",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Subscription"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "error: Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/subscriptions/checkout/{contentCreatorId}": {
             "post": {
                 "security": [
@@ -2155,13 +2195,13 @@ const docTemplate = `{
             }
         },
         "/subscriptions/{subscriptionId}": {
-            "delete": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Annule un abonnement Stripe et met à jour son statut dans la base de données",
+                "description": "Return the detailed information of a subscription",
                 "consumes": [
                     "application/json"
                 ],
@@ -2171,11 +2211,11 @@ const docTemplate = `{
                 "tags": [
                     "subscriptions"
                 ],
-                "summary": "Annuler un abonnement",
+                "summary": "Details of a subscription",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "ID de l'abonnement à annuler",
+                        "description": "ID of the subscription",
                         "name": "subscriptionId",
                         "in": "path",
                         "required": true
@@ -2183,7 +2223,69 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "message: Abonnement annulé avec succès",
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Subscription"
+                        }
+                    },
+                    "401": {
+                        "description": "error: Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "error: You are not authorized to view this subscription",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: Subscription not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cancel a Stripe subscription and update its status in the database",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Cancel a subscription",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID of the subscription to cancel",
+                        "name": "subscriptionId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Subscription canceled successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2201,7 +2303,7 @@ const docTemplate = `{
                         }
                     },
                     "403": {
-                        "description": "error: Vous n'êtes pas autorisé à annuler cet abonnement",
+                        "description": "error: You are not authorized to cancel this subscription",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2210,7 +2312,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "error: Abonnement non trouvé",
+                        "description": "error: Subscription not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2219,7 +2321,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "error: Erreur lors de l'annulation de l'abonnement",
+                        "description": "error: Error when canceling the Stripe subscription",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -3413,6 +3515,51 @@ const docTemplate = `{
                 "StatusProcessing",
                 "StatusClosed",
                 "StatusRejected"
+            ]
+        },
+        "models.Subscription": {
+            "type": "object",
+            "properties": {
+                "contentCreatorId": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "endDate": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "startDate": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/models.SubscriptionStatus"
+                },
+                "stripeSubscriptionId": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.SubscriptionStatus": {
+            "type": "string",
+            "enum": [
+                "ACTIVE",
+                "CANCELED",
+                "PENDING"
+            ],
+            "x-enum-varnames": [
+                "SubscriptionActive",
+                "SubscriptionCanceled",
+                "SubscriptionPending"
             ]
         },
         "models.User": {
