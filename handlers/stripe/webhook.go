@@ -115,15 +115,6 @@ func handleCheckoutSessionCompleted(c *gin.Context, event stripe.Event) {
 		}
 	}
 
-	var existingUserSub models.Subscription
-	err = db.DB.Where("user_id = ? AND content_creator_id = ? AND status = ?",
-		user.ID, creator.ID, models.SubscriptionActive).First(&existingUserSub).Error
-	if err == nil {
-		fmt.Printf("Active subscription already exists between user %s and creator %s\n", user.ID, creator.ID)
-		c.JSON(http.StatusConflict, gin.H{"error": "Active subscription already exists between these users"})
-		return
-	}
-
 	startDate := time.Now()
 	endDate := startDate.AddDate(0, 1, 0)
 

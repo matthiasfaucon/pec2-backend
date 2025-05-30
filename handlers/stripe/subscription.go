@@ -56,6 +56,14 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 		return
 	}
 
+	var existingSub models.Subscription
+	err = db.DB.Where("user_id = ? AND content_creator_id = ? AND status IN (?)",
+		payer.ID, creator.ID, []models.SubscriptionStatus{models.SubscriptionActive, models.SubscriptionPending}).First(&existingSub).Error
+	if err == nil {
+			c.JSON(http.StatusConflict, gin.H{"error": "Vous avez déjà un abonnement actif ou en attente avec ce créateur."})
+			return
+	}
+
 	if payer.StripeCustomerId == "" {
 		custParams := &stripe.CustomerParams{
 			Name: stripe.String(payer.UserName),
@@ -70,7 +78,7 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 	}
 
 	params := &stripe.CheckoutSessionParams{
-		Customer:           stripe.String(payer.StripeCustomerId), 
+		Customer:           stripe.String(payer.StripeCustomerId),
 		PaymentMethodTypes: stripe.StringSlice([]string{"card"}),
 		Mode:               stripe.String(string(stripe.CheckoutSessionModeSubscription)),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
@@ -81,7 +89,7 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 		},
 		SuccessURL:        stripe.String("https://tonsite.com/success"),
 		CancelURL:         stripe.String("https://tonsite.com/cancel"),
-		ClientReferenceID: stripe.String(contentCreatorId), 
+		ClientReferenceID: stripe.String(contentCreatorId),
 	}
 
 	s, err := session.New(params)
