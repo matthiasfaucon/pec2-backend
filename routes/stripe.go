@@ -12,6 +12,7 @@ func StripeRoutes(r *gin.Engine) {
 	subscriptionRoutes.Use(middleware.JWTAuth())
 	{
 		subscriptionRoutes.POST("/checkout/:contentCreatorId", stripe.CreateSubscriptionCheckoutSession)
+		subscriptionRoutes.DELETE("/:subscriptionId", stripe.CancelSubscription)
 	}
 	r.POST("/stripe/webhook", stripe.StripeWebhookHandler)
 }

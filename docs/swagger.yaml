@@ -1897,6 +1897,56 @@ paths:
       summary: Create a new user
       tags:
       - auth
+  /subscriptions/{subscriptionId}:
+    delete:
+      consumes:
+      - application/json
+      description: Annule un abonnement Stripe et met à jour son statut dans la base
+        de données
+      parameters:
+      - description: ID de l'abonnement à annuler
+        in: path
+        name: subscriptionId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Abonnement annulé avec succès'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Vous n''êtes pas autorisé à annuler cet abonnement'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Abonnement non trouvé'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Erreur lors de l''annulation de l''abonnement'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Annuler un abonnement
+      tags:
+      - subscriptions
   /subscriptions/checkout/{contentCreatorId}:
     post:
       consumes:

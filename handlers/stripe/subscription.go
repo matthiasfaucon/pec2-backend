@@ -3,6 +3,7 @@ package stripe
 import (
 	"net/http"
 	"os"
+	"strings"
 
 	"pec2-backend/db"
 	"pec2-backend/models"
@@ -11,6 +12,7 @@ import (
 	stripe "github.com/stripe/stripe-go/v82"
 	session "github.com/stripe/stripe-go/v82/checkout/session"
 	"github.com/stripe/stripe-go/v82/customer"
+	stripeSubscription "github.com/stripe/stripe-go/v82/subscription"
 )
 
 // CreateSubscriptionCheckoutSession start a stripe payment to subscribe to a content creator (verified role). Returns the Stripe session ID to use on the frontend.
@@ -98,4 +100,62 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"sessionId": s.ID, "url": s.URL})
+}
+
+// CancelSubscription cancels a Stripe subscription and updates its status in the database
+// @Summary Cancel a subscription
+// @Description Cancel a Stripe subscription and update its status in the database
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param subscriptionId path string true "ID of the subscription to cancel"
+// @Security BearerAuth
+// @Success 200 {object} map[string]string "message: Subscription canceled successfully"
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 403 {object} map[string]string "error: You are not authorized to cancel this subscription"
+// @Failure 404 {object} map[string]string "error: Subscription not found"
+// @Failure 500 {object} map[string]string "error: Error when canceling the Stripe subscription"
+// @Router /subscriptions/{subscriptionId} [delete]
+func CancelSubscription(c *gin.Context) {
+	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
+	subscriptionId := c.Param("subscriptionId")
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var subscription models.Subscription
+	var err error
+	if strings.HasPrefix(subscriptionId, "sub_") {
+		err = db.DB.First(&subscription, "stripe_subscription_id = ?", subscriptionId).Error
+	} else {
+		err = db.DB.First(&subscription, "id = ?", subscriptionId).Error
+	}
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found"})
+		return
+	}
+
+	if subscription.UserID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not authorized to cancel this subscription"})
+		return
+	}
+
+	_, err = stripeSubscription.Cancel(subscription.StripeSubscriptionId, &stripe.SubscriptionCancelParams{
+		Prorate: stripe.Bool(false),
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error when canceling the Stripe subscription"})
+		return
+	}
+
+	err = db.DB.Model(&subscription).Update("status", models.SubscriptionCanceled).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error when updating the subscription status"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Subscription canceled successfully"})
 }
