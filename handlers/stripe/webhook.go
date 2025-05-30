@@ -139,10 +139,19 @@ func handleCheckoutSessionCompleted(c *gin.Context, event stripe.Event) {
 	}
 
 	if session.PaymentIntent != nil {
-		_ = upsertSubscriptionPayment(sub.ID, int(session.AmountTotal), session.PaymentIntent.ID, models.SubscriptionPaymentPending)
-		if session.PaymentStatus == "paid" {
-			_ = upsertSubscriptionPayment(sub.ID, int(session.AmountTotal), session.PaymentIntent.ID, models.SubscriptionPaymentSucceeded)
+		fmt.Printf("[DEBUG] PaymentIntent présent: %s\n", session.PaymentIntent.ID)
+		err1 := upsertSubscriptionPayment(sub.ID, int(session.AmountTotal), session.PaymentIntent.ID, models.SubscriptionPaymentPending)
+		if err1 != nil {
+			fmt.Printf("[DEBUG] Erreur upsertSubscriptionPayment: %v\n", err1)
 		}
+		if session.PaymentStatus == "paid" {
+			err2 := upsertSubscriptionPayment(sub.ID, int(session.AmountTotal), session.PaymentIntent.ID, models.SubscriptionPaymentSucceeded)
+			if err2 != nil {
+				fmt.Printf("[DEBUG] Erreur upsertSubscriptionPayment (paid): %v\n", err2)
+			}
+		}
+	} else {
+		fmt.Printf("[DEBUG] Pas de PaymentIntent dans la session\n")
 	}
 
 	if initialStatus == models.SubscriptionActive {
@@ -173,6 +182,7 @@ func findSubscriptionByCustomer(customerID string, allowMultiple bool) (*models.
 
 	return &sub, nil
 }
+
 func findSubscriptionByStripeID(stripeSubID string) (*models.Subscription, error) {
 	var sub models.Subscription
 	if err := db.DB.First(&sub, "stripe_subscription_id = ?", stripeSubID).Error; err != nil {
@@ -183,17 +193,31 @@ func findSubscriptionByStripeID(stripeSubID string) (*models.Subscription, error
 
 func upsertSubscriptionPayment(subscriptionID string, amount int, paymentIntentID string, status models.SubscriptionPaymentStatus) error {
 	if paymentIntentID == "" {
-		return nil 
+		return nil
 	}
+
 	var payment models.SubscriptionPayment
 	err := db.DB.First(&payment, "stripe_payment_intent_id = ?", paymentIntentID).Error
+
 	if err == nil {
-		return db.DB.Model(&payment).Updates(map[string]interface{}{
-			"status":  status,
-			"amount":  amount,
-			"paid_at": time.Now(),
-		}).Error
+		// Le paiement existe déjà
+		if payment.Status == models.SubscriptionPaymentSucceeded && status == models.SubscriptionPaymentSucceeded {
+			// Éviter de mettre à jour un paiement déjà réussi
+			return fmt.Errorf("payment already recorded")
+		}
+
+		// Mettre à jour uniquement si le nouveau statut est différent
+		if payment.Status != status {
+			return db.DB.Model(&payment).Updates(map[string]interface{}{
+				"status":  status,
+				"amount":  amount,
+				"paid_at": time.Now(),
+			}).Error
+		}
+		return nil
 	}
+
+	// Créer un nouveau paiement
 	payment = models.SubscriptionPayment{
 		SubscriptionID:        subscriptionID,
 		Amount:                amount,
@@ -253,7 +277,8 @@ func handlePaymentIntentSucceeded(c *gin.Context, event stripe.Event) {
 
 	sub, err := findSubscriptionByCustomer(pi.Customer.ID, true)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"message": "Subscription not found"})
+		fmt.Printf("[DEBUG] Subscription not found for %s, will retry\n", pi.Customer.ID)
+		c.JSON(http.StatusOK, gin.H{"message": "Subscription not ready, will retry"})
 		return
 	}
 
@@ -262,6 +287,7 @@ func handlePaymentIntentSucceeded(c *gin.Context, event stripe.Event) {
 			c.JSON(http.StatusOK, gin.H{"message": "Payment already recorded"})
 			return
 		}
+		fmt.Printf("[DEBUG] Error creating payment: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating payment"})
 		return
 	}
@@ -284,7 +310,8 @@ func handlePaymentIntentFailed(c *gin.Context, event stripe.Event) {
 
 	sub, err := findSubscriptionByCustomer(pi.Customer.ID, true)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"message": "Subscription not found"})
+		fmt.Printf("[DEBUG] Subscription not found for %s, will retry\n", pi.Customer.ID)
+		c.JSON(http.StatusOK, gin.H{"message": "Subscription not ready, will retry"})
 		return
 	}
 
@@ -313,7 +340,8 @@ func handlePaymentIntentCanceled(c *gin.Context, event stripe.Event) {
 
 	sub, err := findSubscriptionByCustomer(pi.Customer.ID, true)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"message": "Subscription not found"})
+		fmt.Printf("[DEBUG] Subscription not found for %s, will retry\n", pi.Customer.ID)
+		c.JSON(http.StatusOK, gin.H{"message": "Subscription not ready, will retry"})
 		return
 	}
 
@@ -363,8 +391,8 @@ func handleInvoicePaymentSucceeded(c *gin.Context, event stripe.Event) {
 
 	sub, err := findSubscriptionByStripeID(stripeSubID)
 	if err != nil {
-		fmt.Printf("[DEBUG] Local subscription not found for %s: %v\n", stripeSubID, err)
-		c.JSON(http.StatusNotFound, gin.H{"error": "Local subscription not found"})
+		fmt.Printf("[DEBUG] Subscription not found for %s, will retry\n", stripeSubID)
+		c.JSON(http.StatusOK, gin.H{"message": "Subscription not ready, will retry"})
 		return
 	}
 
