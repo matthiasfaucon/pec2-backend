@@ -2,7 +2,6 @@ package stripe
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -16,35 +15,36 @@ import (
 	"github.com/stripe/stripe-go/v82/webhook"
 )
 
+// invoicePayload sert à extraire manuellement les champs JSON de l’événement invoice.paid
+type invoicePayload struct {
+	SubscriptionID  string `json:"subscription"`
+	PaymentIntentID string `json:"payment_intent"`
+	AmountPaid      int64  `json:"amount_paid"`
+}
+
+// StripeWebhookHandler gère tous les webhooks Stripe
 func StripeWebhookHandler(c *gin.Context) {
 	const MaxBodyBytes = int64(65536)
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxBodyBytes)
+
 	payload, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		fmt.Printf("Error reading request body: %v\n", err)
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Error reading request body"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Impossible de lire le corps de la requête"})
 		return
 	}
 
-	endpointSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
-	if endpointSecret == "" {
-		fmt.Println("ERREUR: STRIPE_WEBHOOK_SECRET non défini")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Webhook secret not configured"})
+	secret := os.Getenv("STRIPE_WEBHOOK_SECRET")
+	if secret == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Webhook secret non configuré"})
 		return
 	}
 
-	fmt.Println("Webhook secret used:", endpointSecret)
-	sigHeader := c.GetHeader("Stripe-Signature")
-	fmt.Println("Received signature header:", sigHeader)
-
-	event, err := webhook.ConstructEvent(payload, sigHeader, endpointSecret)
+	sig := c.GetHeader("Stripe-Signature")
+	event, err := webhook.ConstructEvent(payload, sig, secret)
 	if err != nil {
-		fmt.Printf("Erreur signature Stripe: %v\n", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Signature verification failed"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Vérification de la signature Stripe échouée"})
 		return
 	}
-
-	fmt.Printf("Webhook received - Type: %s, ID: %s\n", event.Type, event.ID)
 
 	switch event.Type {
 	case "checkout.session.completed":
@@ -53,223 +53,211 @@ func StripeWebhookHandler(c *gin.Context) {
 		handlePaymentIntentSucceeded(c, event)
 	case "payment_intent.payment_failed":
 		handlePaymentIntentFailed(c, event)
+	case "invoice.paid":
+		handleInvoicePaid(c, event)
 	default:
-		fmt.Printf("Unhandled event type: %s\n", event.Type)
-		c.JSON(http.StatusOK, gin.H{"message": "Event ignored"})
+		c.JSON(http.StatusOK, gin.H{"message": "Événement ignoré"})
 	}
 }
 
 func handleCheckoutSessionCompleted(c *gin.Context, event stripe.Event) {
 	var session stripe.CheckoutSession
 	if err := json.Unmarshal(event.Data.Raw, &session); err != nil {
-		fmt.Printf("Erreur parsing checkout session: %v\n", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error parsing checkout session JSON"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Erreur parsing CheckoutSession"})
 		return
 	}
 
-	fmt.Printf("Checkout session completed - ID: %s, Customer: %s\n", session.ID, session.Customer.ID)
-
-	if session.Customer == nil || session.Customer.ID == "" {
-		fmt.Println("Customer ID missing in session")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Customer ID missing in session"})
+	if session.Customer == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Customer missing in session"})
 		return
 	}
-
-	if session.ClientReferenceID == "" {
-		fmt.Println("ClientReferenceID missing in session")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Content creator ID missing"})
+	customerID := session.Customer.ID
+	creatorID := session.ClientReferenceID
+	if creatorID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ClientReferenceID (créateur) manquant"})
 		return
 	}
 
 	var user models.User
-	err := db.DB.First(&user, "stripe_customer_id = ?", session.Customer.ID).Error
-	if err != nil {
-		fmt.Printf("User not found for customer ID: %s, error: %v\n", session.Customer.ID, err)
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found for this Stripe customer"})
+	if err := db.DB.First(&user, "stripe_customer_id = ?", customerID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Utilisateur non trouvé pour ce customer"})
 		return
 	}
 
 	var creator models.User
-	err = db.DB.First(&creator, "id = ?", session.ClientReferenceID).Error
-	if err != nil {
-		fmt.Printf("Content creator not found for ID: %s, error: %v\n", session.ClientReferenceID, err)
-		c.JSON(http.StatusNotFound, gin.H{"error": "Content creator not found"})
+	if err := db.DB.First(&creator, "id = ?", creatorID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Créateur non trouvé"})
 		return
 	}
-
 	if creator.Role != models.ContentCreator {
-		fmt.Printf("The user %s is not a content creator (role: %v)\n", creator.ID, creator.Role)
-		c.JSON(http.StatusForbidden, gin.H{"error": "Target is not a content creator"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "La cible n'est pas un content creator"})
 		return
 	}
 
-	stripeSubID := ""
+	// Si Stripe Subscription déjà créée, on ignore
+	var stripeSubID string
 	if session.Subscription != nil {
 		stripeSubID = session.Subscription.ID
-		var existingSub models.Subscription
-		err = db.DB.First(&existingSub, "stripe_subscription_id = ?", stripeSubID).Error
-		if err == nil {
-			fmt.Printf("Subscription already exists for ID: %s\n", stripeSubID)
-			c.JSON(http.StatusOK, gin.H{"message": "Subscription already exists"})
+		var tmp models.Subscription
+		if err := db.DB.First(&tmp, "stripe_subscription_id = ?", stripeSubID).Error; err == nil {
+			c.JSON(http.StatusOK, gin.H{"message": "Subscription Stripe déjà existante"})
 			return
 		}
 	}
 
-	// AJOUT: Vérifier si une subscription existe déjà pour éviter les doublons
-	var existingSub models.Subscription
-	err = db.DB.Where("user_id = ? AND content_creator_id = ? AND status IN (?)",
-		user.ID, creator.ID, []models.SubscriptionStatus{models.SubscriptionPending, models.SubscriptionActive}).
-		First(&existingSub).Error
-	if err == nil {
-		fmt.Printf("Subscription already exists for user %s and creator %s\n", user.ID, creator.ID)
-		c.JSON(http.StatusOK, gin.H{"message": "Subscription already exists"})
+	// Éviter doublon local
+	var dup models.Subscription
+	if err := db.DB.
+		Where("user_id = ? AND content_creator_id = ? AND status IN ?", user.ID, creator.ID,
+			[]models.SubscriptionStatus{models.SubscriptionPending, models.SubscriptionActive}).
+		First(&dup).Error; err == nil {
+		c.JSON(http.StatusOK, gin.H{"message": "Subscription locale déjà existante"})
 		return
 	}
 
-	startDate := time.Now()
-	endDate := startDate.AddDate(0, 1, 0)
-
+	now := time.Now()
+	end := now.AddDate(0, 1, 0)
 	sub := models.Subscription{
 		UserID:               user.ID,
 		ContentCreatorID:     creator.ID,
 		Status:               models.SubscriptionPending,
 		StripeSubscriptionId: stripeSubID,
-		StartDate:            startDate,
-		EndDate:              &endDate,
+		StartDate:            now,
+		EndDate:              &end,
 	}
-
-	err = db.DB.Create(&sub).Error
-	if err != nil {
-		fmt.Printf("Erreur création subscription: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating subscription"})
+	if err := db.DB.Create(&sub).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur création subscription"})
 		return
 	}
 
-	fmt.Printf("Subscription created successfully: ID=%s, UserID=%s, CreatorID=%s, Status=Pending\n",
-		sub.ID, user.ID, creator.ID)
-	c.JSON(http.StatusOK, gin.H{"message": "Subscription created successfully, waiting for payment confirmation"})
+	c.JSON(http.StatusOK, gin.H{"message": "Subscription créée, en attente du paiement"})
 }
 
 func handlePaymentIntentSucceeded(c *gin.Context, event stripe.Event) {
-	var paymentIntent stripe.PaymentIntent
-	if err := json.Unmarshal(event.Data.Raw, &paymentIntent); err != nil {
-		fmt.Printf("Erreur parsing payment intent: %v\n", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error parsing payment intent JSON"})
+	var pi stripe.PaymentIntent
+	if err := json.Unmarshal(event.Data.Raw, &pi); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Erreur parsing PaymentIntent"})
 		return
 	}
 
-	fmt.Printf("Payment intent succeeded - ID: %s, Amount: %d, Customer: %s\n",
-		paymentIntent.ID, paymentIntent.Amount, paymentIntent.Customer.ID)
-
-	var existingPayment models.SubscriptionPayment
-	err := db.DB.First(&existingPayment, "stripe_payment_intent_id = ?", paymentIntent.ID).Error
-	if err == nil {
-		fmt.Printf("Payment already recorded for PaymentIntent: %s\n", paymentIntent.ID)
-		c.JSON(http.StatusOK, gin.H{"message": "Payment already recorded"})
+	// Éviter doublons
+	if err := db.DB.First(new(models.SubscriptionPayment), "stripe_payment_intent_id = ?", pi.ID).Error; err == nil {
+		c.JSON(http.StatusOK, gin.H{"message": "Paiement déjà enregistré"})
 		return
 	}
+
+	if pi.Customer == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Customer missing on PaymentIntent"})
+		return
+	}
+	customerID := pi.Customer.ID
 
 	var user models.User
-	err = db.DB.First(&user, "stripe_customer_id = ?", paymentIntent.Customer.ID).Error
-	if err != nil {
-		fmt.Printf("User not found for customer ID: %s\n", paymentIntent.Customer.ID)
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found for this payment"})
+	if err := db.DB.First(&user, "stripe_customer_id = ?", customerID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Utilisateur non trouvé pour ce customer"})
 		return
 	}
 
-	var subscription models.Subscription
-	maxRetries := 10
-	delay := 500 * time.Millisecond
-	found := false
-	for i := 0; i < maxRetries; i++ {
-		err = db.DB.Where("user_id = ? AND status IN (?)",
-			user.ID, []models.SubscriptionStatus{models.SubscriptionPending, models.SubscriptionActive}).
-			Order("created_at DESC").First(&subscription).Error
-		if err == nil {
-			found = true
-			break
-		}
-		if i < maxRetries-1 {
-			fmt.Printf("Tentative %d/%d: Subscription non trouvée pour user ID: %s, retry dans %v\n",
-				i+1, maxRetries, user.ID, delay)
-			time.Sleep(delay)
-			if delay < 2*time.Second {
-				delay = delay * 2
-			}
-		}
-	}
-	if !found {
-		fmt.Printf("Subscription non trouvée pour user ID: %s après %d essais\n", user.ID, maxRetries)
-		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found for this payment"})
+	var sub models.Subscription
+	if err := db.DB.
+		Where("user_id = ? AND status IN ?", user.ID,
+			[]models.SubscriptionStatus{models.SubscriptionPending, models.SubscriptionActive}).
+		Order("created_at DESC").
+		First(&sub).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription introuvable pour ce paiement"})
 		return
 	}
 
-	amount := int(paymentIntent.Amount)
 	payment := models.SubscriptionPayment{
-		SubscriptionID:        subscription.ID,
-		Amount:                amount,
+		SubscriptionID:        sub.ID,
+		Amount:                int(pi.Amount),
 		PaidAt:                time.Now(),
-		StripePaymentIntentId: paymentIntent.ID,
+		StripePaymentIntentId: pi.ID,
 	}
-
-	err = db.DB.Create(&payment).Error
-	if err != nil {
-		fmt.Printf("Erreur création du paiement: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating payment record"})
+	if err := db.DB.Create(&payment).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur création du paiement"})
 		return
 	}
 
-	if subscription.EndDate != nil {
-		nouvelleFin := subscription.EndDate.AddDate(0, 1, 0)
-		err = db.DB.Model(&subscription).Update("end_date", nouvelleFin).Error
-		if err != nil {
-			fmt.Printf("Error updating subscription end date: %v\n", err)
-		}
+	if sub.EndDate != nil {
+		newEnd := sub.EndDate.AddDate(0, 1, 0)
+		db.DB.Model(&sub).Updates(map[string]interface{}{
+			"end_date": newEnd,
+			"status":   models.SubscriptionActive,
+		})
 	}
 
-	err = db.DB.Model(&subscription).Update("status", models.SubscriptionActive).Error
-	if err != nil {
-		fmt.Printf("Erreur activation de la subscription: %v\n", err)
-	} else {
-		fmt.Printf("Subscription %s activée avec succès\n", subscription.ID)
-	}
-
-	fmt.Printf("Paiement créé avec succès: Amount=%d€, SubscriptionID=%s, PaymentIntentID=%s\n",
-		amount, subscription.ID, paymentIntent.ID)
-	c.JSON(http.StatusOK, gin.H{"message": "Payment recorded and subscription activated"})
+	c.JSON(http.StatusOK, gin.H{"message": "Paiement enregistré et subscription activée"})
 }
 
 func handlePaymentIntentFailed(c *gin.Context, event stripe.Event) {
-	var paymentIntent stripe.PaymentIntent
-	if err := json.Unmarshal(event.Data.Raw, &paymentIntent); err != nil {
-		fmt.Printf("Erreur parsing payment intent failed: %v\n", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error parsing payment intent failed JSON"})
+	var pi stripe.PaymentIntent
+	if err := json.Unmarshal(event.Data.Raw, &pi); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Erreur parsing PaymentIntent échoué"})
 		return
 	}
 
-	errorMessage := "Unknown error"
-	if paymentIntent.LastPaymentError != nil {
-		errorMessage = paymentIntent.LastPaymentError.Msg
-	}
-
-	fmt.Printf("Échec de paiement - PaymentIntent ID: %s, Customer: %s, Raison: %s\n",
-		paymentIntent.ID, paymentIntent.Customer.ID, errorMessage)
-
-	if paymentIntent.Customer != nil {
+	if pi.Customer != nil {
+		customerID := pi.Customer.ID
 		var user models.User
-		err := db.DB.First(&user, "stripe_customer_id = ?", paymentIntent.Customer.ID).Error
-		if err == nil {
-			err = db.DB.Model(&models.Subscription{}).
-				Where("user_id = ? AND status = ? AND created_at > ?",
-					user.ID, models.SubscriptionPending, time.Now().Add(-1*time.Hour)).
-				Update("status", models.SubscriptionCanceled).Error
-			if err != nil {
-				fmt.Printf("Error updating pending subscriptions: %v\n", err)
-			} else {
-				fmt.Printf("Pending subscriptions marked as canceled for user %s\n", user.ID)
-			}
+		if err := db.DB.First(&user, "stripe_customer_id = ?", customerID).Error; err == nil {
+			db.DB.
+				Model(&models.Subscription{}).
+				Where("user_id = ? AND status = ? AND created_at > ?", user.ID, models.SubscriptionPending, time.Now().Add(-1*time.Hour)).
+				Update("status", models.SubscriptionCanceled)
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Payment failure processed"})
+	c.JSON(http.StatusOK, gin.H{"message": "Échec de paiement traité"})
+}
+
+func handleInvoicePaid(c *gin.Context, event stripe.Event) {
+	// On parse manuellement uniquement les champs JSON nécessaires
+	var inv invoicePayload
+	if err := json.Unmarshal(event.Data.Raw, &inv); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Erreur parsing Invoice payload"})
+		return
+	}
+
+	if inv.SubscriptionID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invoice sans subscription"})
+		return
+	}
+	if inv.PaymentIntentID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invoice sans payment_intent"})
+		return
+	}
+
+	var sub models.Subscription
+	if err := db.DB.First(&sub, "stripe_subscription_id = ?", inv.SubscriptionID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription introuvable pour cette invoice"})
+		return
+	}
+
+	// Éviter doublon de paiement
+	if err := db.DB.First(new(models.SubscriptionPayment), "stripe_payment_intent_id = ?", inv.PaymentIntentID).Error; err == nil {
+		c.JSON(http.StatusOK, gin.H{"message": "Paiement déjà enregistré"})
+		return
+	}
+
+	payment := models.SubscriptionPayment{
+		SubscriptionID:        sub.ID,
+		Amount:                int(inv.AmountPaid),
+		PaidAt:                time.Now(),
+		StripePaymentIntentId: inv.PaymentIntentID,
+	}
+	if err := db.DB.Create(&payment).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur création du paiement"})
+		return
+	}
+
+	if sub.EndDate != nil {
+		newEnd := sub.EndDate.AddDate(0, 1, 0)
+		db.DB.Model(&sub).Updates(map[string]interface{}{
+			"end_date": newEnd,
+			"status":   models.SubscriptionActive,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Paiement invoice enregistré et subscription activée"})
 }

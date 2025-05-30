@@ -66,13 +66,21 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 		return
 	}
 
+	if payer.StripeCustomerId != "" {
+		// Vérifie que le customer existe vraiment sur Stripe
+		_, err := customer.Get(payer.StripeCustomerId, nil)
+		if err != nil {
+			// S'il n'existe pas, on le recrée
+			payer.StripeCustomerId = ""
+		}
+	}
 	if payer.StripeCustomerId == "" {
 		custParams := &stripe.CustomerParams{
 			Name: stripe.String(payer.UserName),
 		}
 		cust, err := customer.New(custParams)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error when creating Stripe customer"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors de la création du client Stripe"})
 			return
 		}
 		db.DB.Model(&payer).Update("stripe_customer_id", cust.ID)
