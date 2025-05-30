@@ -3,12 +3,12 @@ package stripe
 import (
 	"net/http"
 	"os"
-	"strings"
 
 	"pec2-backend/db"
 	"pec2-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	stripe "github.com/stripe/stripe-go/v82"
 	session "github.com/stripe/stripe-go/v82/checkout/session"
 	"github.com/stripe/stripe-go/v82/customer"
@@ -120,6 +120,12 @@ func CancelSubscription(c *gin.Context) {
 	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
 	subscriptionId := c.Param("subscriptionId")
 
+	// Validation de l'UUID
+	if _, err := uuid.Parse(subscriptionId); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid subscription ID"})
+		return
+	}
+
 	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
@@ -127,12 +133,7 @@ func CancelSubscription(c *gin.Context) {
 	}
 
 	var subscription models.Subscription
-	var err error
-	if strings.HasPrefix(subscriptionId, "sub_") {
-		err = db.DB.First(&subscription, "stripe_subscription_id = ?", subscriptionId).Error
-	} else {
-		err = db.DB.First(&subscription, "id = ?", subscriptionId).Error
-	}
+	err := db.DB.First(&subscription, "id = ?", subscriptionId).Error
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found"})
 		return
@@ -160,7 +161,7 @@ func CancelSubscription(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Subscription canceled successfully"})
 }
 
-// GetUserSubscriptions get all the subscriptions (active, canceled, history) of the connected user		
+// GetUserSubscriptions get all the subscriptions (active, canceled, history) of the connected user
 // @Summary List the user's subscriptions
 // @Description Return all the subscriptions (active, canceled, history) of the connected user
 // @Tags subscriptions
@@ -202,6 +203,13 @@ func GetUserSubscriptions(c *gin.Context) {
 // @Router /subscriptions/{subscriptionId} [get]
 func GetSubscriptionDetail(c *gin.Context) {
 	subscriptionId := c.Param("subscriptionId")
+
+	// Validation de l'UUID
+	if _, err := uuid.Parse(subscriptionId); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid subscription ID"})
+		return
+	}
+
 	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
@@ -209,12 +217,7 @@ func GetSubscriptionDetail(c *gin.Context) {
 	}
 
 	var subscription models.Subscription
-	var err error
-	if strings.HasPrefix(subscriptionId, "sub_") {
-		err = db.DB.First(&subscription, "stripe_subscription_id = ?", subscriptionId).Error
-	} else {
-		err = db.DB.First(&subscription, "id = ?", subscriptionId).Error
-	}
+	err := db.DB.First(&subscription, "id = ?", subscriptionId).Error
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found"})
 		return
