@@ -60,8 +60,8 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 	err = db.DB.Where("user_id = ? AND content_creator_id = ? AND status IN (?)",
 		payer.ID, creator.ID, []models.SubscriptionStatus{models.SubscriptionActive, models.SubscriptionPending}).First(&existingSub).Error
 	if err == nil {
-			c.JSON(http.StatusConflict, gin.H{"error": "Vous avez déjà un abonnement actif ou en attente avec ce créateur."})
-			return
+		c.JSON(http.StatusConflict, gin.H{"error": "Vous avez déjà un abonnement actif ou en attente avec ce créateur."})
+		return
 	}
 
 	if payer.StripeCustomerId == "" {
