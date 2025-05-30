@@ -191,6 +191,15 @@ func handlePaymentIntentSucceeded(c *gin.Context, event stripe.Event) {
 		return
 	}
 
+	// Update the end date of the subscription at each renewal
+	if subscription.EndDate != nil {
+		nouvelleFin := subscription.EndDate.AddDate(0, 1, 0)
+		err = db.DB.Model(&subscription).Update("end_date", nouvelleFin).Error
+		if err != nil {
+			fmt.Printf("Error updating subscription end date: %v\n", err)
+		}
+	}
+
 	err = db.DB.Model(&subscription).Update("status", models.SubscriptionActive).Error
 	if err != nil {
 		fmt.Printf("Erreur activation de la subscription: %v\n", err)
