@@ -178,7 +178,6 @@ func handlePaymentIntentSucceeded(c *gin.Context, event stripe.Event) {
 	}
 
 	var subscription models.Subscription
-	// MODIFICATION: Augmenter les retries et le délai pour gérer le problème de timing
 	maxRetries := 10
 	delay := 500 * time.Millisecond
 	found := false
@@ -191,10 +190,9 @@ func handlePaymentIntentSucceeded(c *gin.Context, event stripe.Event) {
 			break
 		}
 		if i < maxRetries-1 {
-			fmt.Printf("Tentative %d/%d: Subscription non trouvée pour user ID: %s, retry dans %v\n", 
+			fmt.Printf("Tentative %d/%d: Subscription non trouvée pour user ID: %s, retry dans %v\n",
 				i+1, maxRetries, user.ID, delay)
 			time.Sleep(delay)
-			// AJOUT: Backoff exponentiel mais limité
 			if delay < 2*time.Second {
 				delay = delay * 2
 			}
@@ -221,7 +219,6 @@ func handlePaymentIntentSucceeded(c *gin.Context, event stripe.Event) {
 		return
 	}
 
-	// Update the end date of the subscription at each renewal
 	if subscription.EndDate != nil {
 		nouvelleFin := subscription.EndDate.AddDate(0, 1, 0)
 		err = db.DB.Model(&subscription).Update("end_date", nouvelleFin).Error
