@@ -173,7 +173,6 @@ func CreateUser(c *gin.Context) {
 		Bio:                 "",
 		ProfilePicture:      "",
 		StripeCustomerId:    "",
-		SubscriptionPrice:   0,
 		Enable:              true,
 		SubscriptionEnable:  true,
 		CommentsEnable:      true,

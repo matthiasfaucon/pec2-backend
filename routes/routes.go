@@ -31,6 +31,7 @@ func SetupRouter() *gin.Engine {
 	ContentCreatorsRoutes(r)
 	InseeRoutes(r)
 	PrivateMessagesRoutes(r)
+	StripeRoutes(r)
 
 	return r
 }
