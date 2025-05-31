@@ -6,6 +6,7 @@ import (
 
 	"pec2-backend/db"
 	"pec2-backend/models"
+	"pec2-backend/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -36,6 +37,7 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(nil, "User not authenticated dans CreateSubscriptionCheckoutSession")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
@@ -43,6 +45,7 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 	var payer models.User
 	err := db.DB.First(&payer, "id = ?", userID).Error
 	if err != nil {
+		utils.LogErrorWithUser(userID, err, "User not found dans CreateSubscriptionCheckoutSession")
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
@@ -50,10 +53,12 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 	var creator models.User
 	err = db.DB.First(&creator, "id = ?", contentCreatorId).Error
 	if err != nil {
+		utils.LogErrorWithUser(userID, err, "Content creator not found dans CreateSubscriptionCheckoutSession")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Content creator not found"})
 		return
 	}
 	if creator.Role != models.ContentCreator {
+		utils.LogErrorWithUser(userID, nil, "Can only subscribe to a content creator dans CreateSubscriptionCheckoutSession")
 		c.JSON(http.StatusForbidden, gin.H{"error": "Can only subscribe to a content creator"})
 		return
 	}
@@ -62,6 +67,7 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 	err = db.DB.Where("user_id = ? AND content_creator_id = ? AND status IN (?)",
 		payer.ID, creator.ID, []models.SubscriptionStatus{models.SubscriptionActive, models.SubscriptionPending}).First(&existingSub).Error
 	if err == nil {
+		utils.LogErrorWithUser(userID, nil, "Déjà une subscription active ou pending dans CreateSubscriptionCheckoutSession")
 		c.JSON(http.StatusConflict, gin.H{"error": "You already have an active or pending subscription with this creator."})
 		return
 	}
@@ -80,6 +86,7 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 		}
 		cust, err := customer.New(custParams)
 		if err != nil {
+			utils.LogErrorWithUser(userID, err, "Erreur lors de la création du client Stripe dans CreateSubscriptionCheckoutSession")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors de la création du client Stripe"})
 			return
 		}
@@ -104,9 +111,11 @@ func CreateSubscriptionCheckoutSession(c *gin.Context) {
 
 	s, err := session.New(params)
 	if err != nil {
+		utils.LogErrorWithUser(userID, err, "Erreur lors de la création de la session Stripe dans CreateSubscriptionCheckoutSession")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	utils.LogSuccessWithUser(userID, "Session Stripe de souscription créée avec succès dans CreateSubscriptionCheckoutSession")
 	c.JSON(http.StatusOK, gin.H{"sessionId": s.ID, "url": s.URL})
 }
 
@@ -136,6 +145,7 @@ func CancelSubscription(c *gin.Context) {
 
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(nil, "User not authenticated dans CancelSubscription")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
@@ -143,11 +153,13 @@ func CancelSubscription(c *gin.Context) {
 	var subscription models.Subscription
 	err := db.DB.First(&subscription, "id = ?", subscriptionId).Error
 	if err != nil {
+		utils.LogErrorWithUser(userID, err, "Subscription not found dans CancelSubscription")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found"})
 		return
 	}
 
 	if subscription.UserID != userID {
+		utils.LogErrorWithUser(userID, nil, "Not authorized to cancel this subscription dans CancelSubscription")
 		c.JSON(http.StatusForbidden, gin.H{"error": "You are not authorized to cancel this subscription"})
 		return
 	}
@@ -156,16 +168,19 @@ func CancelSubscription(c *gin.Context) {
 		Prorate: stripe.Bool(false),
 	})
 	if err != nil {
+		utils.LogErrorWithUser(userID, err, "Erreur lors de l'annulation Stripe dans CancelSubscription")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error when canceling the Stripe subscription"})
 		return
 	}
 
 	err = db.DB.Model(&subscription).Update("status", models.SubscriptionCanceled).Error
 	if err != nil {
+		utils.LogErrorWithUser(userID, err, "Erreur lors de la mise à jour du statut dans CancelSubscription")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error when updating the subscription status"})
 		return
 	}
 
+	utils.LogSuccessWithUser(userID, "Abonnement annulé avec succès dans CancelSubscription")
 	c.JSON(http.StatusOK, gin.H{"message": "Subscription canceled successfully"})
 }
 
@@ -182,6 +197,7 @@ func CancelSubscription(c *gin.Context) {
 func GetUserSubscriptions(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(nil, "User not authenticated dans GetUserSubscriptions")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
@@ -189,10 +205,12 @@ func GetUserSubscriptions(c *gin.Context) {
 	var subscriptions []models.Subscription
 	err := db.DB.Where("user_id = ?", userID).Order("created_at DESC").Find(&subscriptions).Error
 	if err != nil {
+		utils.LogErrorWithUser(userID, err, "Erreur lors de la récupération des abonnements dans GetUserSubscriptions")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching subscriptions"})
 		return
 	}
 
+	utils.LogSuccessWithUser(userID, "Liste des abonnements récupérée avec succès dans GetUserSubscriptions")
 	c.JSON(http.StatusOK, subscriptions)
 }
 
@@ -219,6 +237,7 @@ func GetSubscriptionDetail(c *gin.Context) {
 
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(nil, "User not authenticated dans GetSubscriptionDetail")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
@@ -226,14 +245,17 @@ func GetSubscriptionDetail(c *gin.Context) {
 	var subscription models.Subscription
 	err := db.DB.First(&subscription, "id = ?", subscriptionId).Error
 	if err != nil {
+		utils.LogErrorWithUser(userID, err, "Subscription not found dans GetSubscriptionDetail")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found"})
 		return
 	}
 
 	if subscription.UserID != userID {
+		utils.LogErrorWithUser(userID, nil, "Not authorized to view this subscription dans GetSubscriptionDetail")
 		c.JSON(http.StatusForbidden, gin.H{"error": "You are not authorized to view this subscription"})
 		return
 	}
 
+	utils.LogSuccessWithUser(userID, "Détail d'abonnement récupéré avec succès dans GetSubscriptionDetail")
 	c.JSON(http.StatusOK, subscription)
 }
