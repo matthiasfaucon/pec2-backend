@@ -22,7 +22,7 @@ func SetupRouter() *gin.Engine {
 		MaxAge:           12 * time.Hour,
 	}))
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	r.GET("test", test)
+	r.GET("/", test)
 	AuthRoutes(r)
 	ContactsRoutes(r)
 	UsersRoutes(r)
@@ -36,6 +36,6 @@ func SetupRouter() *gin.Engine {
 }
 func test(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"message": "connexion ok",
+		"message": "Bienvenue!",
 	})
 }
