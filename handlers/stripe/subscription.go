@@ -3,6 +3,7 @@ package stripe
 import (
 	"net/http"
 	"os"
+	"time"
 
 	"pec2-backend/db"
 	"pec2-backend/models"
@@ -258,4 +259,62 @@ func GetSubscriptionDetail(c *gin.Context) {
 
 	utils.LogSuccessWithUser(userID, "Détail d'abonnement récupéré avec succès dans GetSubscriptionDetail")
 	c.JSON(http.StatusOK, subscription)
+}
+
+// GetTotalRevenue allows an admin to retrieve the total sum of payments over a given period (admin only)
+// @Summary Get the total revenue of the site
+// @Description Returns the total amount of successful subscription payments between two dates (admin only)
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param start_date query string true "Start date (YYYY-MM-DD)"
+// @Param end_date query string true "End date (YYYY-MM-DD)"
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "total: total amount in cents"
+// @Failure 400 {object} map[string]string "error: Invalid input"
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 403 {object} map[string]string "error: Access denied"
+// @Failure 500 {object} map[string]string "error: Server error"
+// @Router /subscriptions/revenue [get]
+func GetTotalRevenue(c *gin.Context) {
+	startDateStr := c.Query("start_date")
+	endDateStr := c.Query("end_date")
+
+	if startDateStr == "" || endDateStr == "" {
+		utils.LogError(nil, "start_date or end_date missing in GetTotalRevenue")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "start_date and end_date are required (format YYYY-MM-DD)"})
+		return
+	}
+
+	startDate, err := time.Parse("2006-01-02", startDateStr)
+	if err != nil {
+		utils.LogError(err, "Invalid start_date format in GetTotalRevenue")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid start_date format (YYYY-MM-DD)"})
+		return
+	}
+	endDate, err := time.Parse("2006-01-02", endDateStr)
+	if err != nil {
+		utils.LogError(err, "Invalid end_date format in GetTotalRevenue")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid end_date format (YYYY-MM-DD)"})
+		return
+	}
+	if endDate.Before(startDate) {
+		utils.LogError(nil, "end_date before start_date in GetTotalRevenue")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "end_date must be after start_date"})
+		return
+	}
+
+	var total int64
+	err = db.DB.Model(&models.SubscriptionPayment{}).
+		Where("status = ? AND paid_at >= ? AND paid_at <= ?", models.SubscriptionPaymentSucceeded, startDate, endDate.Add(24*time.Hour)).
+		Select("COALESCE(SUM(amount),0)").
+		Scan(&total).Error
+	if err != nil {
+		utils.LogError(err, "Error calculating total revenue in GetTotalRevenue")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error calculating total revenue"})
+		return
+	}
+
+	utils.LogSuccess("Total revenue successfully retrieved in GetTotalRevenue")
+	c.JSON(http.StatusOK, gin.H{"total": total})
 }

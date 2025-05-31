@@ -2094,6 +2094,60 @@ paths:
       summary: Create a Stripe Checkout session for subscription
       tags:
       - subscriptions
+  /subscriptions/revenue:
+    get:
+      consumes:
+      - application/json
+      description: Returns the total amount of successful subscription payments between
+        two dates (admin only)
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        required: true
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'total: total amount in cents'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: Invalid input'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Access denied'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Server error'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get the total revenue of the site
+      tags:
+      - subscriptions
   /users:
     get:
       consumes:

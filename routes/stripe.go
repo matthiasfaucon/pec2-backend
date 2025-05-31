@@ -15,6 +15,7 @@ func StripeRoutes(r *gin.Engine) {
 		subscriptionRoutes.DELETE("/:subscriptionId", stripe.CancelSubscription)
 		subscriptionRoutes.GET("/", stripe.GetUserSubscriptions)
 		subscriptionRoutes.GET("/:subscriptionId", stripe.GetSubscriptionDetail)
+		subscriptionRoutes.GET("/revenue", middleware.AdminAuth(), stripe.GetTotalRevenue)
 	}
 	r.POST("/stripe/webhook", stripe.StripeWebhookHandler)
 }
