@@ -44,7 +44,7 @@ func main() {
 
 	docs.SwaggerInfo.Host = "localhost:" + port
 
-	utils.LogSuccess("Le serveur fonctionne sur le port " + port)
+	utils.LogSuccess("Le serveur fonctionne sur le port " + port + "baseUrl:" + baseURL)
 	r := routes.SetupRouter()
 
 	if err := r.Run(baseURL + ":" + port); err != nil {
