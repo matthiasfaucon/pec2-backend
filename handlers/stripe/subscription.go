@@ -318,3 +318,41 @@ func GetTotalRevenue(c *gin.Context) {
 	utils.LogSuccess("Total revenue successfully retrieved in GetTotalRevenue")
 	c.JSON(http.StatusOK, gin.H{"total": total})
 }
+
+// GetTopContentCreators returns the top 3 content creators with the most active subscriptions (admin only)
+// @Summary Get top 3 content creators by active subscriptions
+// @Description Returns the top 3 content creators with the most active subscriptions (admin only)
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} map[string]interface{} "Top creators with their subscription count"
+// @Failure 401 {object} map[string]string "error: Unauthorized"
+// @Failure 403 {object} map[string]string "error: Access denied"
+// @Failure 500 {object} map[string]string "error: Server error"
+// @Router /subscriptions/top-creators [get]
+func GetTopContentCreators(c *gin.Context) {
+	type TopCreator struct {
+		ContentCreatorID string `json:"content_creator_id"`
+		UserName         string `json:"user_name"`
+		Count            int64  `json:"subscription_count"`
+	}
+
+	var results []TopCreator
+	err := db.DB.Table("subscriptions").
+		Select("content_creator_id, users.user_name, COUNT(*) as count").
+		Joins("JOIN users ON users.id = subscriptions.content_creator_id").
+		Where("subscriptions.status = ?", models.SubscriptionActive).
+		Group("content_creator_id, users.user_name").
+		Order("count DESC").
+		Limit(3).
+		Scan(&results).Error
+	if err != nil {
+		utils.LogError(err, "Error fetching top content creators in GetTopContentCreators")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching top content creators"})
+		return
+	}
+
+	utils.LogSuccess("Top 3 content creators fetched successfully in GetTopContentCreators")
+	c.JSON(http.StatusOK, results)
+}

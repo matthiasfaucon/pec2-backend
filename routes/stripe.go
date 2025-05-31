@@ -16,6 +16,7 @@ func StripeRoutes(r *gin.Engine) {
 		subscriptionRoutes.GET("/", stripe.GetUserSubscriptions)
 		subscriptionRoutes.GET("/:subscriptionId", stripe.GetSubscriptionDetail)
 		subscriptionRoutes.GET("/revenue", middleware.AdminAuth(), stripe.GetTotalRevenue)
+		subscriptionRoutes.GET("/top-creators", middleware.AdminAuth(), stripe.GetTopContentCreators)
 	}
 	r.POST("/stripe/webhook", stripe.StripeWebhookHandler)
 }

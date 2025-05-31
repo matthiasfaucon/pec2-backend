@@ -2148,6 +2148,45 @@ paths:
       summary: Get the total revenue of the site
       tags:
       - subscriptions
+  /subscriptions/top-creators:
+    get:
+      consumes:
+      - application/json
+      description: Returns the top 3 content creators with the most active subscriptions
+        (admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Top creators with their subscription count
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Access denied'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Server error'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get top 3 content creators by active subscriptions
+      tags:
+      - subscriptions
   /users:
     get:
       consumes:
