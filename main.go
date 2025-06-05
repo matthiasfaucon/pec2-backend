@@ -21,11 +21,17 @@ import (
 // @name Authorization
 // @description Entrez le JWT avec le préfixe Bearer: Bearer <JWT>
 func main() {
-
 	gin.SetMode(gin.ReleaseMode)
 
 	// Initialiser la base de données
 	db.InitDB()
+
+	// Fais en sorte que les logs de Gin et les logs logrus soient dans le même format
+	gin.DefaultWriter = utils.LogWriter()
+	gin.DefaultErrorWriter = utils.LogWriter()
+
+	// Possibilité de supprimer les logs de Gin
+	gin.DisableConsoleColor()
 
 	// Initialiser Cloudinary
 	if err := utils.InitCloudinary(); err != nil {
@@ -44,7 +50,7 @@ func main() {
 
 	docs.SwaggerInfo.Host = "localhost:" + port
 
-	utils.LogSuccess("Le serveur fonctionne sur le port " + port + "baseUrl:" + baseURL)
+	utils.LogSuccess("Le serveur fonctionne sur le port " + port + " baseUrl:" + baseURL)
 	r := routes.SetupRouter()
 
 	if err := r.Run(baseURL + ":" + port); err != nil {
