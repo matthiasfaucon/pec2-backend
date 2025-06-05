@@ -32,7 +32,6 @@ type User struct {
 	Bio                  string     `json:"bio"`
 	ProfilePicture       string     `json:"profilePicture"`
 	StripeCustomerId     string     `json:"stripeCustomerId"`
-	SubscriptionPrice    int        `json:"subscriptionPrice"`
 	Enable               bool       `json:"enable"`
 	SubscriptionEnable   bool       `json:"subscriptionEnable"`
 	CommentsEnable       bool       `json:"commentsEnable"`

@@ -1,6 +1,7 @@
 package categories
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"pec2-backend/db"
@@ -30,15 +31,15 @@ func CreateCategory(c *gin.Context) {
 	fmt.Println("CreateCategory called")
 	var categoryCreate models.CategoryCreate
 	fmt.Println("categoryCreate initialized")
-	
+
 	contentType := c.GetHeader("Content-Type")
 	fmt.Println("contentType:", contentType)
-	
+
 	// Handle both JSON and form-data
 	if contentType == "application/json" {
 		fmt.Println("Handling JSON input")
-		// N'appelez c.ShouldBindJSON qu'une seule fois
 		if err := c.ShouldBindJSON(&categoryCreate); err != nil {
+			utils.LogError(err, "Erreur de binding JSON dans CreateCategory")
 			fmt.Println("Error binding JSON:", err)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": "Invalid JSON input: " + err.Error(),
@@ -47,27 +48,28 @@ func CreateCategory(c *gin.Context) {
 		}
 		fmt.Println("JSON binding successful:", categoryCreate)
 	} else {
-		// Process form data
 		fmt.Println("Handling form data")
 		categoryCreate.Name = c.PostForm("name")
-		
+
 		file, err := c.FormFile("picture")
 		fmt.Println("File:", file != nil, "Error:", err)
 		if err == nil && file != nil {
 			imageURL, err := utils.UploadImage(file, "category_pictures", "category")
 			if err != nil {
+				utils.LogError(err, "Error when uploading picture in CreateCategory")
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading picture: " + err.Error()})
 				return
 			}
 			categoryCreate.PictureURL = imageURL
 		} else {
+			utils.LogError(errors.New("picture manquante"), "Picture is required for form data dans CreateCategory")
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Picture is required for form data"})
 			return
 		}
 	}
 
-	// Name validation
 	if categoryCreate.Name == "" {
+		utils.LogError(errors.New("nom manquant"), "Name is required dans CreateCategory")
 		fmt.Println("Name is required")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Name is required",
@@ -78,6 +80,7 @@ func CreateCategory(c *gin.Context) {
 	var existingCategory models.Category
 	resultInCategories := db.DB.First(&existingCategory, "name = ?", categoryCreate.Name)
 	if resultInCategories.Error == nil {
+		utils.LogError(errors.New("catégorie déjà existante"), "Category already exists dans CreateCategory")
 		fmt.Println("Category already exists")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Category already exists",
@@ -85,7 +88,6 @@ func CreateCategory(c *gin.Context) {
 		return
 	}
 
-	// Create the category
 	category := models.Category{
 		Name:       categoryCreate.Name,
 		PictureURL: categoryCreate.PictureURL,
@@ -94,6 +96,7 @@ func CreateCategory(c *gin.Context) {
 
 	result := db.DB.Create(&category)
 	if result.Error != nil {
+		utils.LogError(result.Error, "Error when creating category in CreateCategory")
 		fmt.Println("Error creating category:", result.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Error creating category: " + result.Error.Error(),
@@ -102,6 +105,11 @@ func CreateCategory(c *gin.Context) {
 	}
 
 	fmt.Println("Category created successfully:", category)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Category created successfully in CreateCategory")
 	c.JSON(http.StatusCreated, category)
 }
 
@@ -117,16 +125,21 @@ func CreateCategory(c *gin.Context) {
 func GetAllCategories(c *gin.Context) {
 	var categories []models.Category
 
-	// Create a new database session to avoid prepared statement conflicts
 	session := db.DB.Session(&gorm.Session{})
 	result := session.Order("name ASC").Find(&categories)
 	if result.Error != nil {
+		utils.LogError(result.Error, "Error when retrieving categories in GetAllCategories")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": result.Error.Error(),
 		})
 		return
 	}
 
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "List of categories retrieved successfully in GetAllCategories")
 	c.JSON(http.StatusOK, categories)
 }
 
@@ -144,16 +157,16 @@ func GetAllCategories(c *gin.Context) {
 func DeleteCategory(c *gin.Context) {
 	categoryID := c.Param("id")
 
-	// On vérifie que la catégorie existe avant de la supprimer
 	var category models.Category
 	result := db.DB.First(&category, "id = ?", categoryID)
 	if result.Error != nil {
+		utils.LogError(result.Error, "Category not found in DeleteCategory")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
 		return
 	}
 
-	// First, delete all associations in the post_categories table
 	if err := db.DB.Exec("DELETE FROM post_categories WHERE category_id = ?", categoryID).Error; err != nil {
+		utils.LogError(err, "Error when removing category from posts in DeleteCategory")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error removing category from posts: " + err.Error()})
 		return
 	}
@@ -164,10 +177,16 @@ func DeleteCategory(c *gin.Context) {
 
 	result = db.DB.Delete(&category)
 	if result.Error != nil {
+		utils.LogError(result.Error, "Error when deleting category in DeleteCategory")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error deleting category: " + result.Error.Error()})
 		return
 	}
 
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Category deleted successfully in DeleteCategory")
 	c.JSON(http.StatusOK, gin.H{"message": "Category deleted successfully"})
 }
 
@@ -192,18 +211,21 @@ func UpdateCategory(c *gin.Context) {
 	var category models.Category
 	result := db.DB.First(&category, "id = ?", categoryID)
 	if result.Error != nil {
+		utils.LogError(result.Error, "Category not found in UpdateCategory")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
 		return
 	}
 
 	name := c.PostForm("name")
 	if name == "" {
+		utils.LogError(errors.New("nom manquant"), "Name is required in UpdateCategory")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
 		return
 	}
 
 	var existingCategory models.Category
 	if err := db.DB.Where("name = ? AND id != ?", name, categoryID).First(&existingCategory).Error; err == nil {
+		utils.LogError(errors.New("nom de catégorie déjà existant"), "Category name already exists dans UpdateCategory")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Category name already exists"})
 		return
 	}
@@ -218,20 +240,28 @@ func UpdateCategory(c *gin.Context) {
 
 		imageURL, err := utils.UploadImage(file, "category_pictures", "category")
 		if err != nil {
+			utils.LogError(err, "Error when uploading picture in UpdateCategory")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error uploading picture: " + err.Error()})
 			return
 		}
 		category.PictureURL = imageURL
 	} else {
+		utils.LogError(errors.New("picture manquante"), "Picture is required dans UpdateCategory")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Picture is required"})
 		return
 	}
 
 	result = db.DB.Save(&category)
 	if result.Error != nil {
+		utils.LogError(result.Error, "Error when updating category in UpdateCategory")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating category: " + result.Error.Error()})
 		return
 	}
 
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Category updated successfully in UpdateCategory")
 	c.JSON(http.StatusOK, category)
 }

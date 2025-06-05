@@ -1,4 +1,4 @@
-FROM golang:1.23
+FROM golang:1.24
 RUN echo "Building at $(date)" > /tmp/build_time
 WORKDIR /app
 

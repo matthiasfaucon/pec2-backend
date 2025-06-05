@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"os"
 
 	"pec2-backend/db"
@@ -30,8 +29,7 @@ func main() {
 
 	// Initialiser Cloudinary
 	if err := utils.InitCloudinary(); err != nil {
-		log.Printf("Error while initializing Cloudinary: %v", err)
-		log.Println("The image upload will not work correctly.")
+		utils.LogError(err, "Error when initializing Cloudinary")
 	}
 
 	// Récupérer les variables d'environnement
@@ -46,10 +44,10 @@ func main() {
 
 	docs.SwaggerInfo.Host = "localhost:" + port
 
-	log.Printf("Server is running on port %s\n", port)
+	utils.LogSuccess("Le serveur fonctionne sur le port " + port + "baseUrl:" + baseURL)
 	r := routes.SetupRouter()
 
 	if err := r.Run(baseURL + ":" + port); err != nil {
-		log.Fatal("Error while starting the server:", err)
+		utils.LogError(err, "Error when starting the server")
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"pec2-backend/db"
 	"pec2-backend/models"
+	"pec2-backend/utils"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -25,12 +26,14 @@ import (
 func CreatePrivateMessage(c *gin.Context) {
 	senderID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(nil, "User not authenticated dans CreatePrivateMessage")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
 	var messageCreate models.PrivateMessageCreate
 	if err := c.ShouldBindJSON(&messageCreate); err != nil {
+		utils.LogError(err, "Error binding JSON in CreatePrivateMessage")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data: " + err.Error()})
 		return
 	}
@@ -38,14 +41,17 @@ func CreatePrivateMessage(c *gin.Context) {
 	var receiver models.User
 	if result := db.DB.Where("user_name = ?", messageCreate.ReceiverUserName).First(&receiver); result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
+			utils.LogError(result.Error, "Receiver not found in CreatePrivateMessage")
 			c.JSON(http.StatusNotFound, gin.H{"error": "Receiver not found"})
 		} else {
+			utils.LogError(result.Error, "Error verifying receiver in CreatePrivateMessage")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error verifying receiver: " + result.Error.Error()})
 		}
 		return
 	}
 
 	if !receiver.MessageEnable {
+		utils.LogError(nil, "Receiver has disabled private messages in CreatePrivateMessage")
 		c.JSON(http.StatusForbidden, gin.H{"error": "Receiver has disabled private messages"})
 		return
 	}
@@ -58,10 +64,12 @@ func CreatePrivateMessage(c *gin.Context) {
 	}
 
 	if result := db.DB.Create(&privateMessage); result.Error != nil {
+		utils.LogError(result.Error, "Error creating private message in CreatePrivateMessage")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating message: " + result.Error.Error()})
 		return
 	}
 
+	utils.LogSuccessWithUser(senderID, "Private message created successfully in CreatePrivateMessage")
 	c.JSON(http.StatusCreated, privateMessage)
 }
 
@@ -78,6 +86,7 @@ func CreatePrivateMessage(c *gin.Context) {
 func GetUserMessages(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(nil, "User not authenticated in GetUserMessages")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
@@ -89,6 +98,7 @@ func GetUserMessages(c *gin.Context) {
 		Find(&messages)
 
 	if result.Error != nil {
+		utils.LogError(result.Error, "Error retrieving messages in GetUserMessages")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving messages: " + result.Error.Error()})
 		return
 	}
@@ -119,6 +129,7 @@ func GetUserMessages(c *gin.Context) {
 		enhancedMessages = append(enhancedMessages, enhancedMsg)
 	}
 
+	utils.LogSuccessWithUser(userID, "User messages retrieved successfully in GetUserMessages")
 	c.JSON(http.StatusOK, enhancedMessages)
 }
 
@@ -135,6 +146,7 @@ func GetUserMessages(c *gin.Context) {
 func GetReceivedMessages(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(nil, "User not authenticated in GetReceivedMessages")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
@@ -146,6 +158,7 @@ func GetReceivedMessages(c *gin.Context) {
 		Find(&messages)
 
 	if result.Error != nil {
+		utils.LogError(result.Error, "Error retrieving received messages in GetReceivedMessages")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving messages: " + result.Error.Error()})
 		return
 	}
@@ -170,6 +183,7 @@ func GetReceivedMessages(c *gin.Context) {
 		enhancedMessages = append(enhancedMessages, enhancedMsg)
 	}
 
+	utils.LogSuccessWithUser(userID, "Received messages retrieved successfully in GetReceivedMessages")
 	c.JSON(http.StatusOK, enhancedMessages)
 }
 
@@ -186,6 +200,7 @@ func GetReceivedMessages(c *gin.Context) {
 func GetSentMessages(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(nil, "User not authenticated in GetSentMessages")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
@@ -197,6 +212,7 @@ func GetSentMessages(c *gin.Context) {
 		Find(&messages)
 
 	if result.Error != nil {
+		utils.LogError(result.Error, "Error retrieving sent messages in GetSentMessages")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving messages: " + result.Error.Error()})
 		return
 	}
@@ -221,6 +237,7 @@ func GetSentMessages(c *gin.Context) {
 		enhancedMessages = append(enhancedMessages, enhancedMsg)
 	}
 
+	utils.LogSuccessWithUser(userID, "Sent messages retrieved successfully in GetSentMessages")
 	c.JSON(http.StatusOK, enhancedMessages)
 }
 
@@ -241,12 +258,14 @@ func GetSentMessages(c *gin.Context) {
 func MarkMessageAsRead(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
+		utils.LogError(nil, "User not authenticated in MarkMessageAsRead")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
 	messageID := c.Param("id")
 	if messageID == "" {
+		utils.LogError(nil, "Message ID is required in MarkMessageAsRead")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Message ID is required"})
 		return
 	}
@@ -254,30 +273,33 @@ func MarkMessageAsRead(c *gin.Context) {
 	var message models.PrivateMessage
 	if result := db.DB.Where("id = ?", messageID).First(&message); result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
+			utils.LogError(result.Error, "Message not found in MarkMessageAsRead")
 			c.JSON(http.StatusNotFound, gin.H{"error": "Message not found"})
 		} else {
+			utils.LogError(result.Error, "Error retrieving message in MarkMessageAsRead")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving message: " + result.Error.Error()})
 		}
 		return
 	}
 
-	// Verify that the user is the receiver of the message
 	if message.ReceiverID != userID.(string) {
+		utils.LogError(nil, "Permission denied to mark message as read in MarkMessageAsRead")
 		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to mark this message as read"})
 		return
 	}
 
-	// If message is already read, return success
 	if message.Status == models.MessageStatusRead {
+		utils.LogSuccessWithUser(userID, "Message already marked as read in MarkMessageAsRead")
 		c.JSON(http.StatusOK, gin.H{"message": "Message is already marked as read"})
 		return
 	}
 
-	// Update message status to READ
 	if result := db.DB.Model(&message).Update("status", models.MessageStatusRead); result.Error != nil {
+		utils.LogError(result.Error, "Error updating message status in MarkMessageAsRead")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error marking message as read: " + result.Error.Error()})
 		return
 	}
 
+	utils.LogSuccessWithUser(userID, "Message marked as read successfully in MarkMessageAsRead")
 	c.JSON(http.StatusOK, gin.H{"message": "Message marked as read"})
 }

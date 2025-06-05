@@ -44,12 +44,13 @@ func GetCommentsByPostID(c *gin.Context) {
 	var comments []models.Comment
 
 	if err := db.DB.Where("post_id = ?", postId).Find(&comments).Error; err != nil {
+		utils.LogError(err, "Failed to retrieve comments in GetCommentsByPostID")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve comments"})
 		return
 	}
 
 	var commentsResponse []SSEComment
-	
+
 	// If no comments, commentsResponse remains an empty slice
 	if len(comments) > 0 {
 		for _, comment := range comments {
@@ -70,6 +71,11 @@ func GetCommentsByPostID(c *gin.Context) {
 
 	fmt.Println("Comments retrieved:", commentsResponse)
 
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Comments retrieved successfully in GetCommentsByPostID")
 	c.JSON(http.StatusOK, gin.H{"comments": commentsResponse})
 }
 
@@ -96,6 +102,7 @@ func HandleSSE(c *gin.Context) {
 	if !exists && tokenFromQuery != "" {
 		_, err := utils.DecodeJWT(tokenFromQuery)
 		if err != nil {
+			utils.LogError(err, "Invalid token in URL in HandleSSE")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token in URL"})
 			return
 		}
@@ -105,6 +112,7 @@ func HandleSSE(c *gin.Context) {
 	// C'est une vérif en plus pour le cas où le token est pas valide
 	// dans l'idée c'est toujours à false au début car je passe pas par le middleware
 	if !exists {
+		utils.LogError(nil, "User not found in token in HandleSSE")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in token"})
 		return
 	}
@@ -112,6 +120,7 @@ func HandleSSE(c *gin.Context) {
 	var post models.Post
 
 	if err := db.DB.First(&post, "id = ?", postID).Error; err != nil {
+		utils.LogError(err, "Post not found in HandleSSE")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
 		return
 	}
@@ -138,6 +147,7 @@ func HandleSSE(c *gin.Context) {
 
 	flusher, ok := c.Writer.(http.Flusher)
 	if !ok {
+		utils.LogError(nil, "Streaming not supported in HandleSSE")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Streaming not supported"})
 		return
 	}
@@ -148,6 +158,7 @@ func HandleSSE(c *gin.Context) {
 
 	var comments []models.Comment
 	if err := db.DB.Where("post_id = ?", postID).Find(&comments).Error; err != nil {
+		utils.LogError(err, "Error retrieving comments in HandleSSE")
 		log.Printf("Error retrieving comments: %v", err)
 	} else {
 		for _, comment := range comments {
@@ -170,6 +181,7 @@ func HandleSSE(c *gin.Context) {
 
 			jsonData, err := json.Marshal(msg)
 			if err != nil {
+				utils.LogError(err, "Error marshaling SSE message in HandleSSE")
 				log.Printf("Error marshaling SSE message: %v", err)
 				continue
 			}
@@ -179,9 +191,13 @@ func HandleSSE(c *gin.Context) {
 		}
 	}
 
-	// dans la méthode Context c'est écrit
-	// "For incoming server requests, the context is canceled when the client's connection closes,..."
-	ctx := c.Request.Context() // Se déclenchera lorsque le client se déconnecte
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "SSE connection established in HandleSSE")
+
+	ctx := c.Request.Context()
 
 	defer func() {
 		clientsMutex.Lock()
@@ -236,6 +252,7 @@ func CreateComment(c *gin.Context) {
 		// Décoder le token de l'URL
 		claims, err := utils.DecodeJWT(tokenFromQuery)
 		if err != nil {
+			utils.LogError(err, "Invalid token in URL in CreateComment")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token in URL"})
 			return
 		}
@@ -244,6 +261,7 @@ func CreateComment(c *gin.Context) {
 	}
 
 	if !exists {
+		utils.LogError(nil, "User not found in token in CreateComment")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in token"})
 		return
 	}
@@ -254,6 +272,7 @@ func CreateComment(c *gin.Context) {
 	}
 
 	if err := c.BindJSON(&commentData); err != nil {
+		utils.LogError(err, "Invalid comment data in CreateComment")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid comment data"})
 		return
 	}
@@ -267,6 +286,7 @@ func CreateComment(c *gin.Context) {
 
 	// Enregistrer dans la base de données
 	if err := db.DB.Create(&comment).Error; err != nil {
+		utils.LogError(err, "Failed to save comment in CreateComment")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save comment"})
 		return
 	}
@@ -295,7 +315,11 @@ func CreateComment(c *gin.Context) {
 	// Diffuser à tous les clients connectés pour ce post
 	broadcastComment(postID, sseComment)
 
-	// Répondre au client
+	userID, exists = c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Comment created successfully in CreateComment")
 	c.JSON(http.StatusCreated, gin.H{"comment": sseComment})
 }
 

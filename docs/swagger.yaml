@@ -394,6 +394,37 @@ definitions:
     - StatusProcessing
     - StatusClosed
     - StatusRejected
+  models.Subscription:
+    properties:
+      contentCreatorId:
+        type: string
+      createdAt:
+        type: string
+      endDate:
+        type: string
+      id:
+        type: string
+      startDate:
+        type: string
+      status:
+        $ref: '#/definitions/models.SubscriptionStatus'
+      stripeSubscriptionId:
+        type: string
+      updatedAt:
+        type: string
+      userId:
+        type: string
+    type: object
+  models.SubscriptionStatus:
+    enum:
+    - ACTIVE
+    - CANCELED
+    - PENDING
+    type: string
+    x-enum-varnames:
+    - SubscriptionActive
+    - SubscriptionCanceled
+    - SubscriptionPending
   models.User:
     properties:
       ConfirmationCodeEnd:
@@ -443,8 +474,6 @@ definitions:
         type: string
       subscriptionEnable:
         type: boolean
-      subscriptionPrice:
-        type: integer
       updatedAt:
         type: string
       userName:
@@ -1899,6 +1928,265 @@ paths:
       summary: Create a new user
       tags:
       - auth
+  /subscriptions:
+    get:
+      consumes:
+      - application/json
+      description: Return all the subscriptions (active, canceled, history) of the
+        connected user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Subscription'
+            type: array
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List the user's subscriptions
+      tags:
+      - subscriptions
+  /subscriptions/{subscriptionId}:
+    delete:
+      consumes:
+      - application/json
+      description: Cancel a Stripe subscription and update its status in the database
+      parameters:
+      - description: ID of the subscription to cancel
+        in: path
+        name: subscriptionId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Subscription canceled successfully'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: You are not authorized to cancel this subscription'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Subscription not found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Error when canceling the Stripe subscription'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Cancel a subscription
+      tags:
+      - subscriptions
+    get:
+      consumes:
+      - application/json
+      description: Return the detailed information of a subscription
+      parameters:
+      - description: ID of the subscription
+        in: path
+        name: subscriptionId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Subscription'
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: You are not authorized to view this subscription'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Subscription not found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Details of a subscription
+      tags:
+      - subscriptions
+  /subscriptions/checkout/{contentCreatorId}:
+    post:
+      consumes:
+      - application/json
+      description: Start a Stripe payment to subscribe to a content creator (verified
+        role). Returns the Stripe session ID to use on the frontend.
+      parameters:
+      - description: ID of the content creator
+        in: path
+        name: contentCreatorId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'sessionId: ID of the Stripe Checkout session, url: Stripe
+            Checkout URL'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Can only subscribe to a content creator'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: User not found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Stripe error or server error'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a Stripe Checkout session for subscription
+      tags:
+      - subscriptions
+  /subscriptions/revenue:
+    get:
+      consumes:
+      - application/json
+      description: Returns the total amount of successful subscription payments between
+        two dates (admin only)
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        required: true
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'total: total amount in cents'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: Invalid input'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Access denied'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Server error'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get the total revenue of the site
+      tags:
+      - subscriptions
+  /subscriptions/top-creators:
+    get:
+      consumes:
+      - application/json
+      description: Returns the top 3 content creators with the most active subscriptions
+        (admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Top creators with their subscription count
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: 'error: Access denied'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Server error'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get top 3 content creators by active subscriptions
+      tags:
+      - subscriptions
   /users:
     get:
       consumes:

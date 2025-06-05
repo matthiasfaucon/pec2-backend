@@ -30,6 +30,7 @@ func CreateUser(c *gin.Context) {
 	var userCreate models.UserCreate
 
 	if err := c.ShouldBindJSON(&userCreate); err != nil {
+		utils.LogError(err, "Error when binding JSON in CreateUser")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid input: " + err.Error(),
 		})
@@ -37,6 +38,7 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if userCreate.Email == "" {
+		utils.LogError(errors.New("email vide"), "Email vide in CreateUser")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The email cannot be empty",
 		})
@@ -44,6 +46,7 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if !utils.ValidateEmail(userCreate.Email) {
+		utils.LogError(errors.New("format email invalide"), "Invalid email format in CreateUser")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid email format",
 		})
@@ -51,6 +54,7 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if userCreate.Password == "" {
+		utils.LogError(errors.New("mot de passe vide"), "Password empty in CreateUser")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The password cannot be empty",
 		})
@@ -58,6 +62,7 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if len(userCreate.Password) < 6 {
+		utils.LogError(errors.New("mot de passe trop court"), "Password too short in CreateUser")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The password must contain at least 6 characters",
 		})
@@ -69,6 +74,7 @@ func CreateUser(c *gin.Context) {
 	hasDigit := strings.ContainsAny(userCreate.Password, "0123456789")
 
 	if !hasLower || !hasUpper || !hasDigit {
+		utils.LogError(errors.New("mot de passe faible"), "Weak password in CreateUser")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The password must contain at least one lowercase, one uppercase and one digit",
 		})
@@ -76,6 +82,7 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if userCreate.UserName == "" {
+		utils.LogError(errors.New("username vide"), "Username empty in CreateUser")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The username cannot be empty",
 		})
@@ -83,6 +90,7 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if userCreate.FirstName == "" {
+		utils.LogError(errors.New("firstname vide"), "FirstName empty in CreateUser")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The first name cannot be empty",
 		})
@@ -90,6 +98,7 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if userCreate.LastName == "" {
+		utils.LogError(errors.New("lastname vide"), "LastName empty in CreateUser")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The last name cannot be empty",
 		})
@@ -97,6 +106,7 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if userCreate.Sexe != models.Male && userCreate.Sexe != models.Female && userCreate.Sexe != models.Other {
+		utils.LogError(errors.New("sexe invalide"), "Invalid sexe in CreateUser")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The sexe must be MAN, WOMAN or OTHER",
 		})
@@ -104,6 +114,7 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if userCreate.BirthDayDate.After(time.Now()) {
+		utils.LogError(errors.New("date de naissance future"), "Future birth date in CreateUser")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The birth date must be in the past",
 		})
@@ -112,11 +123,13 @@ func CreateUser(c *gin.Context) {
 
 	var existingUser models.User
 	if err := db.DB.Where("email = ?", userCreate.Email).First(&existingUser).Error; err == nil {
+		utils.LogError(errors.New("email déjà utilisé"), "Email already used in CreateUser")
 		c.JSON(http.StatusConflict, gin.H{
 			"error": "This email is already used",
 		})
 		return
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		utils.LogError(err, "Error when checking the email existence in CreateUser")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Error when checking the email existence",
 		})
@@ -124,11 +137,13 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if err := db.DB.Where("user_name = ?", userCreate.UserName).First(&existingUser).Error; err == nil {
+		utils.LogError(errors.New("username déjà utilisé"), "Username already used in CreateUser")
 		c.JSON(http.StatusConflict, gin.H{
 			"error": "This username is already taken",
 		})
 		return
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		utils.LogError(err, "Error when checking the username existence in CreateUser")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Error when checking the username existence",
 		})
@@ -138,6 +153,7 @@ func CreateUser(c *gin.Context) {
 	passwordHash, err := hashPassword(userCreate.Password)
 
 	if err != nil {
+		utils.LogError(err, "Error when hashing password in CreateUser")
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Error when hashing password"})
 		return
 	}
@@ -157,7 +173,6 @@ func CreateUser(c *gin.Context) {
 		Bio:                 "",
 		ProfilePicture:      "",
 		StripeCustomerId:    "",
-		SubscriptionPrice:   0,
 		Enable:              true,
 		SubscriptionEnable:  true,
 		CommentsEnable:      true,
@@ -170,6 +185,7 @@ func CreateUser(c *gin.Context) {
 
 	result := db.DB.Create(&user)
 	if result.Error != nil {
+		utils.LogError(result.Error, "Error when creating user in CreateUser")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": result.Error.Error(),
 		})
@@ -178,6 +194,7 @@ func CreateUser(c *gin.Context) {
 
 	resultSaveUser := db.DB.Save(&user)
 	if resultSaveUser.Error != nil {
+		utils.LogError(resultSaveUser.Error, "Error when saving user in CreateUser")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": resultSaveUser.Error.Error(),
 		})
@@ -185,6 +202,11 @@ func CreateUser(c *gin.Context) {
 	}
 
 	mailsmodels.ConfirmEmail(user.Email, code)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "User created successfully in CreateUser")
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User created successfully",
 		"email":   user.Email,
@@ -213,6 +235,7 @@ func Login(c *gin.Context) {
 	var inputLogin LoginRequest
 
 	if err := c.ShouldBindJSON(&inputLogin); err != nil {
+		utils.LogError(err, "Error when binding JSON in Login")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid input: " + err.Error(),
 		})
@@ -220,6 +243,7 @@ func Login(c *gin.Context) {
 	}
 
 	if inputLogin.Email == "" {
+		utils.LogError(errors.New("email vide"), "Email empty in Login")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The email cannot be empty",
 		})
@@ -227,6 +251,7 @@ func Login(c *gin.Context) {
 	}
 
 	if !utils.ValidateEmail(inputLogin.Email) {
+		utils.LogError(errors.New("format email invalide"), "Invalid email format in Login")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid email format",
 		})
@@ -234,6 +259,7 @@ func Login(c *gin.Context) {
 	}
 
 	if inputLogin.Password == "" {
+		utils.LogError(errors.New("mot de passe vide"), "Password empty in Login")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "The password cannot be empty",
 		})
@@ -245,10 +271,12 @@ func Login(c *gin.Context) {
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			utils.LogError(result.Error, "User not found in Login")
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "User not found",
 			})
 		} else {
+			utils.LogError(result.Error, "Database error in Login")
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Database error: " + result.Error.Error(),
 			})
@@ -259,6 +287,7 @@ func Login(c *gin.Context) {
 	isSamePassword := samePassword(inputLogin.Password, user.Password)
 
 	if !isSamePassword {
+		utils.LogError(errors.New("mauvais mot de passe"), "Wrong password in Login")
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "Wrong credentials",
 		})
@@ -266,6 +295,7 @@ func Login(c *gin.Context) {
 	}
 
 	if user.EmailVerifiedAt == nil {
+		utils.LogError(errors.New("email non vérifié"), "Email not verified in Login")
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "user don't valid email",
 		})
@@ -274,10 +304,16 @@ func Login(c *gin.Context) {
 
 	token, err := utils.GenerateJWT(user, 72)
 	if err != nil {
+		utils.LogError(err, "Error when generating JWT in Login")
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Error when generating JWT"})
 		return
 	}
 
+	userID := user.ID
+	if userID == "" {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "User login successfully in Login")
 	c.JSON(http.StatusOK, gin.H{
 		"token": token,
 		"user":  user,
@@ -301,10 +337,12 @@ func ValidEmail(c *gin.Context) {
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			utils.LogError(result.Error, "User not found in ValidEmail")
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "User not found",
 			})
 		} else {
+			utils.LogError(result.Error, "Database error in ValidEmail")
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Database error: " + result.Error.Error(),
 			})
@@ -313,6 +351,7 @@ func ValidEmail(c *gin.Context) {
 	}
 
 	if time.Now().After(user.ConfirmationCodeEnd) {
+		utils.LogError(errors.New("code expiré"), "Confirmation code expired in ValidEmail")
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "Confirmation code expired",
 		})
@@ -320,6 +359,7 @@ func ValidEmail(c *gin.Context) {
 	}
 
 	if user.EmailVerifiedAt != nil {
+		utils.LogError(errors.New("déjà validé"), "User already validated in ValidEmail")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "User already validated account",
 		})
@@ -332,12 +372,18 @@ func ValidEmail(c *gin.Context) {
 
 	resultSaveUser := db.DB.Save(&user)
 	if resultSaveUser.Error != nil {
+		utils.LogError(resultSaveUser.Error, "Error when saving user in ValidEmail")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": resultSaveUser.Error.Error(),
 		})
 		return
 	}
 
+	userID := user.ID
+	if userID == "" {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Email validation successfully in ValidEmail")
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User validate account",
 	})
@@ -361,10 +407,12 @@ func ResendValidEmail(c *gin.Context) {
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			utils.LogError(result.Error, "User not found in ResendValidEmail")
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "User not found",
 			})
 		} else {
+			utils.LogError(result.Error, "Database error in ResendValidEmail")
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Database error: " + result.Error.Error(),
 			})
@@ -373,6 +421,7 @@ func ResendValidEmail(c *gin.Context) {
 	}
 
 	if user.EmailVerifiedAt != nil {
+		utils.LogError(errors.New("déjà validé"), "User already validated in ResendValidEmail")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "User already validated account",
 		})
@@ -386,15 +435,20 @@ func ResendValidEmail(c *gin.Context) {
 	user.ConfirmationCodeEnd = now.Add(1 * time.Hour)
 
 	if result := db.DB.Save(&user); result.Error != nil {
+		utils.LogError(result.Error, "Error when saving user in ResendValidEmail")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating user: " + result.Error.Error()})
 		return
 	}
 
 	mailsmodels.ConfirmEmail(email, code)
+	userID := user.ID
+	if userID == "" {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Resend validation code successfully in ResendValidEmail")
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Resend code for user : " + user.ID,
 	})
-
 }
 
 func hashPassword(password string) (string, error) {

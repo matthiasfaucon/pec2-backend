@@ -1,6 +1,7 @@
 package contacts
 
 import (
+	"errors"
 	"net/http"
 	"pec2-backend/db"
 	"pec2-backend/models"
@@ -25,6 +26,7 @@ func CreateContact(c *gin.Context) {
 	var contactInput models.ContactCreate
 
 	if err := c.ShouldBindJSON(&contactInput); err != nil {
+		utils.LogError(err, "Error when binding JSON in CreateContact")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid input: " + err.Error(),
 		})
@@ -32,6 +34,7 @@ func CreateContact(c *gin.Context) {
 	}
 
 	if !utils.ValidateEmail(contactInput.Email) {
+		utils.LogError(errors.New("format email invalide"), "Invalid email format in CreateContact")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid email format",
 		})
@@ -50,6 +53,7 @@ func CreateContact(c *gin.Context) {
 
 	result := db.DB.Create(&contact)
 	if result.Error != nil {
+		utils.LogError(result.Error, "Error when creating contact in CreateContact")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": result.Error.Error(),
 		})
@@ -66,6 +70,11 @@ func CreateContact(c *gin.Context) {
 	}
 	mailsmodels.ContactConfirmation(emailData)
 
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Contact request created successfully in CreateContact")
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Contact request submitted successfully",
 		"id":      contact.ID,
@@ -88,10 +97,16 @@ func GetAllContacts(c *gin.Context) {
 	result := db.DB.Order("submitted_at DESC").Find(&contacts)
 
 	if result.Error != nil {
+		utils.LogError(result.Error, "Error when retrieving contacts in GetAllContacts")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
 		return
 	}
 
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "List of contacts retrieved successfully in GetAllContacts")
 	c.JSON(http.StatusOK, contacts)
 }
 
@@ -113,6 +128,7 @@ func UpdateContactStatus(c *gin.Context) {
 	var statusUpdate models.ContactStatusUpdate
 
 	if err := c.ShouldBindJSON(&statusUpdate); err != nil {
+		utils.LogError(err, "Error when binding JSON in UpdateContactStatus")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid input data: " + err.Error(),
 		})
@@ -129,6 +145,7 @@ func UpdateContactStatus(c *gin.Context) {
 	}
 
 	if !validStatus {
+		utils.LogError(errors.New("statut invalide"), "Invalid status in UpdateContactStatus")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid status",
 		})
@@ -137,6 +154,7 @@ func UpdateContactStatus(c *gin.Context) {
 
 	var contact models.Contact
 	if result := db.DB.First(&contact, "id = ?", id); result.Error != nil {
+		utils.LogError(result.Error, "Contact not found in UpdateContactStatus")
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "Contact not found",
 		})
@@ -145,6 +163,7 @@ func UpdateContactStatus(c *gin.Context) {
 
 	// Mettre à jour le statut
 	if result := db.DB.Model(&contact).Update("status", statusUpdate.Status); result.Error != nil {
+		utils.LogError(result.Error, "Error when updating status in UpdateContactStatus")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": result.Error.Error(),
 		})
@@ -161,6 +180,11 @@ func UpdateContactStatus(c *gin.Context) {
 	}
 	mailsmodels.ContactStatusUpdate(emailData)
 
+	userID, exists := c.Get("user_id")
+	if !exists {
+		userID = "0"
+	}
+	utils.LogSuccessWithUser(userID, "Contact status updated successfully in UpdateContactStatus")
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Status updated successfully",
 	})
