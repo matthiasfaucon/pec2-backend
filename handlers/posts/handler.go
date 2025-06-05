@@ -154,21 +154,21 @@ func GetAllPosts(c *gin.Context) {
 		// Compter le nombre de commentaires
 		var commentsCount int64
 		db.DB.Model(&models.Comment{}).Where("post_id = ?", post.ID).Count(&commentsCount)
-		
+
 		// Compter le nombre de reports
 		var reportsCount int64
 		db.DB.Model(&models.Report{}).Where("post_id = ?", post.ID).Count(&reportsCount)
-		
+
 		// Créer la réponse pour ce post
 		postResponse := models.PostResponse{
-			ID:            post.ID,
-			Name:          post.Name,
-			PictureURL:    post.PictureURL,
-			IsFree:        post.IsFree,
-			Enable:        post.Enable,
-			Categories:    post.Categories,
-			CreatedAt:     post.CreatedAt,
-			UpdatedAt:     post.UpdatedAt,
+			ID:         post.ID,
+			Name:       post.Name,
+			PictureURL: post.PictureURL,
+			IsFree:     post.IsFree,
+			Enable:     post.Enable,
+			Categories: post.Categories,
+			CreatedAt:  post.CreatedAt,
+			UpdatedAt:  post.UpdatedAt,
 			User: models.UserInfo{
 				ID:             post.User.ID,
 				UserName:       post.User.UserName,
@@ -178,7 +178,7 @@ func GetAllPosts(c *gin.Context) {
 			CommentsCount: int(commentsCount),
 			ReportsCount:  int(reportsCount),
 		}
-		
+
 		response = append(response, postResponse)
 	}
 
@@ -206,25 +206,25 @@ func GetPostByID(c *gin.Context) {
 	// Compter le nombre de likes
 	var likesCount int64
 	db.DB.Model(&models.Like{}).Where("post_id = ?", post.ID).Count(&likesCount)
-	
+
 	// Compter le nombre de commentaires
 	var commentsCount int64
 	db.DB.Model(&models.Comment{}).Where("post_id = ?", post.ID).Count(&commentsCount)
-	
+
 	// Compter le nombre de reports
 	var reportsCount int64
 	db.DB.Model(&models.Report{}).Where("post_id = ?", post.ID).Count(&reportsCount)
-	
+
 	// Créer la réponse pour ce post
 	postResponse := models.PostResponse{
-		ID:            post.ID,
-		Name:          post.Name,
-		PictureURL:    post.PictureURL,
-		IsFree:        post.IsFree,
-		Enable:        post.Enable,
-		Categories:    post.Categories,
-		CreatedAt:     post.CreatedAt,
-		UpdatedAt:     post.UpdatedAt,
+		ID:         post.ID,
+		Name:       post.Name,
+		PictureURL: post.PictureURL,
+		IsFree:     post.IsFree,
+		Enable:     post.Enable,
+		Categories: post.Categories,
+		CreatedAt:  post.CreatedAt,
+		UpdatedAt:  post.UpdatedAt,
 		User: models.UserInfo{
 			ID:             post.User.ID,
 			UserName:       post.User.UserName,
