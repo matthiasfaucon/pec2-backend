@@ -30,12 +30,13 @@ type SSEMessage struct {
 
 // Commentaire à envoyer via SSE
 type SSEComment struct {
-	ID        string `json:"id"`
-	PostID    string `json:"postId"`
-	UserID    string `json:"userId"`
-	Content   string `json:"content"`
-	UserName  string `json:"userName"`
-	CreatedAt string `json:"createdAt"`
+	ID            string `json:"id"`
+	PostID        string `json:"postId"`
+	UserID        string `json:"userId"`
+	Content       string `json:"content"`
+	UserName      string `json:"userName"`
+	CreatedAt     string `json:"createdAt"`
+	CommentsCount int    `json:"commentsCount"`
 }
 
 func GetCommentsByPostID(c *gin.Context) {
@@ -49,20 +50,26 @@ func GetCommentsByPostID(c *gin.Context) {
 	}
 
 	var commentsResponse []SSEComment
-	for _, comment := range comments {
-		var user models.User
-		db.DB.Select("user_name").Where("id = ?", comment.UserID).First(&user)
 
-		sseComment := SSEComment{
-			ID:        comment.ID,
-			PostID:    comment.PostID,
-			UserID:    comment.UserID,
-			Content:   comment.Content,
-			UserName:  user.UserName,
-			CreatedAt: comment.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	// If no comments, commentsResponse remains an empty slice
+	if len(comments) > 0 {
+		for _, comment := range comments {
+			var user models.User
+			db.DB.Select("user_name").Where("id = ?", comment.UserID).First(&user)
+
+			sseComment := SSEComment{
+				ID:        comment.ID,
+				PostID:    comment.PostID,
+				UserID:    comment.UserID,
+				Content:   comment.Content,
+				UserName:  user.UserName,
+				CreatedAt: comment.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			}
+			commentsResponse = append(commentsResponse, sseComment)
 		}
-		commentsResponse = append(commentsResponse, sseComment)
 	}
+
+	fmt.Println("Comments retrieved:", commentsResponse)
 
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -284,17 +291,26 @@ func CreateComment(c *gin.Context) {
 		return
 	}
 
+	// 	// Récupérer le nombre de commentaires pour le post
+	var count int64
+	if err := db.DB.Model(&models.Comment{}).Where("post_id = ?", postID).Count(&count).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count comments"})
+		return
+	}
+	comment.CommentsCount = int(count)
+
 	// Récupérer le nom d'utilisateur
 	var user models.User
 	db.DB.Select("user_name").Where("id = ?", userID).First(&user)
 	// Créer la réponse SSE
 	sseComment := SSEComment{
-		ID:        comment.ID,
-		PostID:    comment.PostID,
-		UserID:    comment.UserID,
-		Content:   comment.Content,
-		UserName:  user.UserName,
-		CreatedAt: comment.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:            comment.ID,
+		PostID:        comment.PostID,
+		UserID:        comment.UserID,
+		Content:       comment.Content,
+		UserName:      user.UserName,
+		CreatedAt:     comment.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		CommentsCount: comment.CommentsCount,
 	}
 	// Diffuser à tous les clients connectés pour ce post
 	broadcastComment(postID, sseComment)

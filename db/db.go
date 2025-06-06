@@ -1,9 +1,9 @@
 package db
 
 import (
-	"fmt"
 	"os"
 	"pec2-backend/models"
+	"pec2-backend/utils"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
@@ -14,20 +14,23 @@ var DB *gorm.DB
 
 func InitDB() {
 	if err := godotenv.Load(); err != nil {
-		fmt.Println("Warning: Impossible to load the .env file:", err)
-		fmt.Println("The environment variable DB_URL must be defined in the system environment")
+		utils.LogError(err, "Warning: Impossible to load the .env file")
+		utils.LogInfo("The environment variable DB_URL must be defined in the system environment")
 	}
 
 	dsn := os.Getenv("DB_URL")
 	if dsn == "" {
-		fmt.Println("Variable DB_URL non définie")
+		utils.LogError(nil, "Variable DB_URL non définie")
 		panic("URL de base de données non configurée")
 	}
 
 	var err error
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	// Utilisation du logger GORM harmonisé
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: utils.GetGormLogger(),
+	})
 	if err != nil {
-		fmt.Println("Error connecting to the database:", err)
+		utils.LogError(err, "Error connecting to the database")
 		panic("Could not connect to the database")
 	}
 
@@ -45,9 +48,9 @@ func InitDB() {
 		&models.SubscriptionPayment{},
 	)
 	if err != nil {
-		fmt.Println("Error migrating database:", err)
+		utils.LogError(err, "Error migrating database")
 		panic("Could not migrate database")
 	}
 
-	fmt.Println("Database connection successful")
+	utils.LogSuccess("Database connection successful")
 }
