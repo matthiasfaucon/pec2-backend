@@ -38,20 +38,11 @@ jobs:
       run: |
         gcloud container clusters get-credentials pec2  --region europe-west9 --project basic-tube-461312-r9
         
-    - name: List files before applying configurations
-      run: |
-        echo "Current directory contents:"
-        ls -la
-        echo "Contents of prod directory (if exists):"
-        ls -la ./prod || echo "prod directory not found"
-        echo "Contents of prod/sh directory (if exists):"
-        ls -la ./prod/sh || echo "prod/sh directory not found"
-      
     - name: Apply Kubernetes configurations
       run: |
         # Appliquer les configurations dans l'ordre correct
-        kubectl apply -f ./prod/sh/back-pec-2-config-secret.yaml
-        kubectl apply -f ./prod/sh/back-pec-2-config.yaml
+        kubectl scale deployment back-pec-2-deployment --replicas=0
+        kubectl apply -f /kube/back-pec-2-deployment.yaml
     - name: Afficher les informations de déploiement
       run: |
         echo "Déploiement terminé!"
