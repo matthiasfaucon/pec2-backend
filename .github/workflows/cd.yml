@@ -46,7 +46,6 @@ jobs:
         
     - name: Apply Kubernetes configurations
       run: |
-        # Appliquer les configurations dans l'ordre correct
         # 1. D'abord scale down le deployment existant
         kubectl scale deployment back-pec-2-deployment --replicas=0 || true
         
