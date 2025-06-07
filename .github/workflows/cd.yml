@@ -41,8 +41,8 @@ jobs:
     - name: Apply Kubernetes configurations
       run: |
         # Appliquer les configurations dans l'ordre correct
-        kubectl apply -f ./prod/back-pec-2-config-secret.yaml
-        kubectl apply -f ./prod/back-pec-2-config.yaml
+        kubectl apply -f ./prod/sh/back-pec-2-config-secret.yaml
+        kubectl apply -f ./prod/sh/back-pec-2-config.yaml
         
     - name: Afficher les informations de déploiement
       run: |
