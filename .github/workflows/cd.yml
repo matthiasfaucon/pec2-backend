@@ -13,6 +13,7 @@ env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GKE_CLUSTER: pec2
   GKE_ZONE: europe-west9
+  KUBE_REPO: anthonyvouin/pec2-kube
 
 jobs:
   deploy:
@@ -22,7 +23,13 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3    
-      
+    
+    - name: Checkout Kubernetes repository
+      uses: actions/checkout@v3
+      with:
+        repository: ${{ env.KUBE_REPO }}
+        path: kube-files
+        
     - id: 'auth'
       uses: 'google-github-actions/auth@v2'
       with:
@@ -42,7 +49,8 @@ jobs:
       run: |
         # Appliquer les configurations dans l'ordre correct
         kubectl scale deployment back-pec-2-deployment --replicas=0
-        kubectl apply -f /kube/back-pec-2-deployment.yaml
+        kubectl apply -f ./kube-files/kube/back-pec-2-deployment.yaml
+        
     - name: Afficher les informations de déploiement
       run: |
         echo "Déploiement terminé!"
