@@ -37,6 +37,6 @@ func SetupRouter() *gin.Engine {
 }
 func test(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Bienvenue!",
+		"message": "Bienvenue CD !",
 	})
 }
