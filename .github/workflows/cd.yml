@@ -2,11 +2,9 @@ name: Continuous Deployment
 
 on:
   workflow_run:
-    workflows: [CI, Docker]
+    workflows: [Docker]
     types:
       - completed
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 env:
@@ -17,6 +15,7 @@ env:
 
 jobs:
   deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Deploy to GKE
     runs-on: ubuntu-latest
 
