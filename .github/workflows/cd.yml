@@ -57,11 +57,8 @@ jobs:
         echo "Application de la ConfigMap..."
         kubectl apply -f ./kube-files/kube/back-pec-2-configmap.yaml || echo "Aucune ConfigMap trouvée ou erreur"
         
-        # 4. Modifier et appliquer le Deployment avec imagePullPolicy: Always
-        echo "Application du Deployment avec imagePullPolicy: Always..."
-        sed -i 's/imagePullPolicy: IfNotPresent/imagePullPolicy: Always/g' ./kube-files/kube/back-pec-2-deployment.yaml || true
-        # Add a unique timestamp annotation to force deployment update
-        kubectl patch deployment back-pec-2-deployment -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"kubectl.kubernetes.io/restartedAt\":\"$(date +%s)\"}}}}}" || true
+        # 4. Appliquer le Deployment
+        echo "Application du Deployment..."
         kubectl apply -f ./kube-files/kube/back-pec-2-deployment.yaml
         
         # 5. Appliquer le Service
