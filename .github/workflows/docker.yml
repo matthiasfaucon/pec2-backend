@@ -1,5 +1,8 @@
 name: Docker
 
+env:
+  DOCKER_IMAGE_VERSION: 1.1.5
+
 on:
   workflow_run:
     workflows: [CI]
@@ -20,7 +23,7 @@ jobs:
       run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
     - name: Build Docker image
-      run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend-pec-2:latest .
+      run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend-pec-2:${{ env.DOCKER_IMAGE_VERSION }} .
 
     - name: Push Docker image
-      run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend-pec-2:latest
+      run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend-pec-2:${{ env.DOCKER_IMAGE_VERSION }}
