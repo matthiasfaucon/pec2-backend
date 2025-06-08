@@ -65,6 +65,9 @@ jobs:
         echo "Application du Service..."
         kubectl apply -f ./kube-files/kube/back-pec-2-service.yaml || echo "Aucun Service trouvé ou erreur"
         
+        # 6. Redémarrer le déploiement pour appliquer les dernières configurations
+        echo "Redémarrage du déploiement..."
+        kubectl rollout restart deployment/back-pec-2-deployment
     - name: Afficher les informations de déploiement
       run: |
         echo "Déploiement terminé!"
