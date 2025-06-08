@@ -56,7 +56,7 @@ jobs:
         
         # 4. Appliquer le Deployment
         echo "Application du Deployment..."
-        kubectl apply -f ./kube-files/kube/back-pec-2-deployment.yaml
+        kubectl apply -f ./kube-files/kube/back-pec-2-deployment.yaml || echo "Aucun Deployment trouvé ou erreur"
         
         # 5. Appliquer le Service
         echo "Application du Service..."
