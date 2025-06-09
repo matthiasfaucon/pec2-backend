@@ -44,6 +44,7 @@ jobs:
       run: |
         gcloud container clusters get-credentials pec2  --region europe-west9 --project basic-tube-461312-r9
         
+    # https://stackoverflow.com/questions/40366192/kubernetes-how-to-make-deployment-to-update-image
     - name: Apply Kubernetes configurations
       run: |
         # 1. D''abord scale down le deployment existant
@@ -70,10 +71,10 @@ jobs:
         kubectl apply -f ./kube-files/kube/back-pec-2-service.yaml || echo "Aucun Service trouv� ou erreur"
         
         # 7. Red�marrer le d�ploiement pour appliquer les derni�res configurations
-        echo "Red�marrage du d�ploiement..."
+        echo "Redémarrage du déploiement..."
         kubectl rollout restart deployment/back-pec-2-deployment
     
-    - name: Afficher les informations de d�ploiement
+    - name: Afficher les informations de déploiement
       run: |
         echo "D�ploiement termin�!"
         echo "Statut des d�ploiements:"
