@@ -53,7 +53,7 @@ jobs:
         
         # Appliquer le Deployment
         echo "Application du Deployment..."
-        kubectl apply -f ./kube-files/kube/prod/back/deployment.yaml || echo "Aucun déploiement trouvé ou erreur"
+        kubectl apply -f ./kube-files/kube/back-pec-2-deployment.yaml
     
     - name: Afficher les informations de déploiement
       run: |
