@@ -53,7 +53,7 @@ jobs:
         
         # Appliquer la ConfigMap
         echo "Application de la ConfigMap..."
-        kubectl apply -f ./kube-files/kube/back-pec-2-configmap.yaml || echo "Aucune ConfigMap trouvée ou erreur"
+        kubectl apply -f ./kube-files/kube/prod/back/configmap.yaml || echo "Aucune ConfigMap trouvée ou erreur"
         
         # Modifier l'image du déploiement pour utiliser le SHA du commit
         echo "Mise à jour de l''image Docker avec le SHA du commit..."
@@ -61,7 +61,7 @@ jobs:
         
         # Appliquer le Deployment
         echo "Application du Deployment..."
-        kubectl apply -f ./kube-files/kube/back-pec-2-deployment.yaml
+        kubectl apply -f ./kube-files/kube/prod/back/deployment.yaml || echo "Aucun déploiement trouvé ou erreur"
         
         # Appliquer le Service
         echo "Application du Service..."
