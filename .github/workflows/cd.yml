@@ -8,9 +8,6 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GKE_CLUSTER: pec2
-  GKE_ZONE: europe-west9
   KUBE_REPO: anthonyvouin/pec2-kube
 
 jobs:
@@ -42,7 +39,7 @@ jobs:
         
     - name: 'Get GKE credentials'
       run: |
-        gcloud container clusters get-credentials pec2  --region europe-west9 --project basic-tube-461312-r9
+        gcloud container clusters get-credentials ${{ secrets.GKE_CLUSTER }} --region ${{ secrets.GKE_ZONE }} --project ${{ secrets.GCP_PROJECT_ID }}
         
     # https://stackoverflow.com/questions/40366192/kubernetes-how-to-make-deployment-to-update-image
     - name: Apply Kubernetes configurations
