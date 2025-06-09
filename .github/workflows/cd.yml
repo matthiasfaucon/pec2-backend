@@ -47,14 +47,6 @@ jobs:
         # D'abord scale down le deployment existant
         kubectl scale deployment back-pec-2-deployment --replicas=0 || true
         
-        # Appliquer le Secret
-        echo "Application des Secrets..."
-        kubectl apply -f ./kube-files/kube/back-pec-2-config-secret.yaml || echo "Aucun fichier de secrets trouvé ou erreur"
-        
-        # Appliquer la ConfigMap
-        echo "Application de la ConfigMap..."
-        kubectl apply -f ./kube-files/kube/prod/back/configmap.yaml || echo "Aucune ConfigMap trouvée ou erreur"
-        
         # Modifier l'image du déploiement pour utiliser le SHA du commit
         echo "Mise à jour de l''image Docker avec le SHA du commit..."
         sed -i "s|image: charlineroyer937/backend-pec-2:latest|image: charlineroyer937/backend-pec-2:${{ github.sha }}|g" ./kube-files/kube/back-pec-2-deployment.yaml
@@ -62,14 +54,6 @@ jobs:
         # Appliquer le Deployment
         echo "Application du Deployment..."
         kubectl apply -f ./kube-files/kube/prod/back/deployment.yaml || echo "Aucun déploiement trouvé ou erreur"
-        
-        # Appliquer le Service
-        echo "Application du Service..."
-        kubectl apply -f ./kube-files/kube/back-pec-2-service.yaml || echo "Aucun Service trouvé ou erreur"
-        
-        # Redémarrer le déploiement pour appliquer les derniéres configurations
-        echo "Redémarrage du déploiement..."
-        kubectl rollout restart deployment/back-pec-2-deployment
     
     - name: Afficher les informations de déploiement
       run: |
